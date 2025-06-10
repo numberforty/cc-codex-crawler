@@ -116,3 +116,65 @@ def test_stream_and_extract(tmp_path, monkeypatch):
     assert len(records) == 1
     assert records[0][0] == "http://example.com/test.py"
     assert records[0][1] == b"print(1)"
+
+
+def test_list_warc_keys_http(tmp_path, monkeypatch):
+    path_file = tmp_path / "warc.paths.gz"
+    content = b"a.warc.gz\nb.warc.gz\n"
+    import gzip
+    with gzip.open(path_file, "wb") as fh:
+        fh.write(content)
+
+    class Resp:
+        def __init__(self, data):
+            self.content = data
+            self.status_code = 200
+
+        def raise_for_status(self):
+            pass
+
+    def fake_get(url, timeout=10):
+        assert url.endswith("warc.paths.gz")
+        return Resp(path_file.read_bytes())
+
+    monkeypatch.setattr("requests.get", fake_get)
+
+    keys = utils.list_warc_keys_http("crawl-data/CC-MAIN-2020-50", 1)
+    assert keys == ["a.warc.gz"]
+
+
+def test_stream_and_extract_http(tmp_path, monkeypatch):
+    warc_path = tmp_path / "sample.warc.gz"
+    _create_warc(warc_path)
+
+    class DummyResp:
+        def __init__(self, path):
+            self.raw = open(path, "rb")
+            self.status_code = 200
+
+        def raise_for_status(self):
+            pass
+
+        def __enter__(self):
+            return self
+
+        def __exit__(self, exc_type, exc, tb):
+            self.raw.close()
+
+    def fake_get(url, stream=True, headers=None):
+        assert url.endswith("sample.warc.gz")
+        return DummyResp(warc_path)
+
+    monkeypatch.setattr("requests.get", fake_get)
+
+    records = list(
+        utils.stream_and_extract_http(
+            "dir/sample.warc.gz",
+            [".py"],
+            rate_limit=0,
+            user_agent="ua",
+        )
+    )
+    assert len(records) == 1
+    assert records[0][0] == "http://example.com/test.py"
+    assert records[0][1] == b"print(1)"

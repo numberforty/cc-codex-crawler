@@ -343,3 +343,68 @@ def save_state(path: str, completed: Set[str]) -> None:
     tmp = {"completed": sorted(completed)}
     with open(path, "w", encoding="utf-8") as fh:
         json.dump(tmp, fh, indent=2)
+
+
+def list_warc_keys_http(prefix: str, max_keys: int) -> List[str]:
+    """Return up to ``max_keys`` WARC file keys using HTTPS listing.
+
+    The function downloads ``warc.paths.gz`` from the Common Crawl bucket
+    and extracts the first ``max_keys`` entries.
+    """
+
+    import gzip
+    import io
+    import requests
+
+    base_url = "https://data.commoncrawl.org"
+    norm = prefix.strip("/")
+    if "CC-MAIN" not in norm:
+        norm = f"{norm}/CC-MAIN-LATEST"
+    url = f"{base_url}/{norm}/warc.paths.gz"
+
+    resp = requests.get(url, timeout=10)
+    resp.raise_for_status()
+
+    keys: List[str] = []
+    with gzip.GzipFile(fileobj=io.BytesIO(resp.content)) as gz:
+        for line in gz:
+            key = line.decode("utf-8").strip()
+            if key.endswith(".warc.gz"):
+                keys.append(key)
+                if len(keys) >= max_keys:
+                    break
+    return keys
+
+
+def stream_and_extract_http(
+    key: str,
+    target_exts,
+    rate_limit: float,
+    user_agent: str,
+) -> None:
+    """Stream a gzipped WARC file via HTTPS and yield matching records."""
+
+    import gzip
+    import time
+    from urllib.parse import urlparse
+
+    import requests
+    from warcio.archiveiterator import ArchiveIterator
+
+    url = f"https://data.commoncrawl.org/{key}"
+
+    headers = {"User-Agent": user_agent}
+    with requests.get(url, stream=True, headers=headers) as resp:
+        resp.raise_for_status()
+        with gzip.GzipFile(fileobj=resp.raw) as gz:
+            for record in ArchiveIterator(gz):
+                if record.rec_type != "response":
+                    continue
+                uri = record.rec_headers.get_header("WARC-Target-URI")
+                if not uri:
+                    continue
+                path = urlparse(uri).path
+                if any(path.endswith(ext) for ext in target_exts):
+                    yield uri, record.content_stream().read()
+    time.sleep(rate_limit)
+
