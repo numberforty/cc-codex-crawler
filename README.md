@@ -15,17 +15,19 @@ crawler.py --> utils.py --> OUTPUT_DIR
    ```bash
    pip install -r requirements.txt
    ```
-2. Set your OpenAI API key:
+2. _(Optional)_ configure an OpenAI API key if you plan to use the
+   optional utilities:
    ```bash
    export OPENAI_API_KEY=<your key>
    ```
-3. Start crawling Common Crawl (AWS credentials required):
+3. Start crawling Common Crawl using AWS credentials:
    ```bash
    python crawler.py --warcs 5 --samples 100
    ```
-4. Or run in HTTP mode without credentials:
+4. Or run in HTTP mode without AWS credentials. You can set
+   `CRAWL_PREFIX` to target a specific crawl:
    ```bash
-   python crawler.py --mode http --warcs 5 --samples 100
+   CRAWL_PREFIX=crawl-data/CC-MAIN-2024-22 python crawler.py --mode http --warcs 5 --samples 100
    ```
 
 ## CLI Examples
@@ -42,9 +44,17 @@ crawler.py --> utils.py --> OUTPUT_DIR
   ```bash
   TARGET_EXTENSIONS=.py,.js python crawler.py
   ```
+* Run with AWS credentials (default):
+  ```bash
+  python crawler.py --warcs 20
+  ```
 * Run without AWS credentials:
   ```bash
   python crawler.py --mode http --warcs 20
+  ```
+* Specify a different crawl in HTTP mode:
+  ```bash
+  CRAWL_PREFIX=crawl-data/CC-MAIN-2024-22 python crawler.py --mode http --warcs 20
   ```
 
 ## Contributing
