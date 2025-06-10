@@ -9,6 +9,7 @@ sys.path.insert(
     os.path.abspath(os.path.join(os.path.dirname(__file__), "..")),
 )  # noqa: E402
 import pytest  # noqa: E402
+import requests  # noqa: E402
 from warcio.statusandheaders import StatusAndHeaders  # noqa: E402
 from warcio.warcwriter import WARCWriter  # noqa: E402
 
@@ -122,6 +123,7 @@ def test_list_warc_keys_http(tmp_path, monkeypatch):
     path_file = tmp_path / "warc.paths.gz"
     content = b"a.warc.gz\nb.warc.gz\n"
     import gzip
+
     with gzip.open(path_file, "wb") as fh:
         fh.write(content)
 
@@ -133,13 +135,20 @@ def test_list_warc_keys_http(tmp_path, monkeypatch):
         def raise_for_status(self):
             pass
 
+    calls = []
+
     def fake_get(url, timeout=10):
+        calls.append(1)
         assert url.endswith("warc.paths.gz")
+        if len(calls) == 1:
+            raise requests.RequestException("fail")
         return Resp(path_file.read_bytes())
 
     monkeypatch.setattr("requests.get", fake_get)
+    monkeypatch.setattr("time.sleep", lambda x: None)
 
     keys = utils.list_warc_keys_http("crawl-data/CC-MAIN-2020-50", 1)
+    assert calls and len(calls) == 2
     assert keys == ["crawl-data/a.warc.gz"]
 
 
@@ -161,14 +170,17 @@ def test_stream_and_extract_http(tmp_path, monkeypatch):
         def __exit__(self, exc_type, exc, tb):
             self.raw.close()
 
+    calls = []
+
     def fake_get(url, stream=True, headers=None):
-        assert (
-            url
-            == "https://data.commoncrawl.org/crawl-data/dir/sample.warc.gz"
-        )
+        calls.append(1)
+        assert url == "https://data.commoncrawl.org/crawl-data/dir/sample.warc.gz"
+        if len(calls) == 1:
+            raise requests.RequestException("fail")
         return DummyResp(warc_path)
 
     monkeypatch.setattr("requests.get", fake_get)
+    monkeypatch.setattr("time.sleep", lambda x: None)
 
     records = list(
         utils.stream_and_extract_http(
@@ -178,6 +190,7 @@ def test_stream_and_extract_http(tmp_path, monkeypatch):
             user_agent="ua",
         )
     )
+    assert calls and len(calls) == 2
     assert len(records) == 1
     assert records[0][0] == "http://example.com/test.py"
     assert records[0][1] == b"print(1)"

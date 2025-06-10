@@ -354,6 +354,8 @@ def list_warc_keys_http(prefix: str, max_keys: int) -> List[str]:
 
     import gzip
     import io
+    import time
+
     import requests
 
     base_url = "https://data.commoncrawl.org"
@@ -362,18 +364,31 @@ def list_warc_keys_http(prefix: str, max_keys: int) -> List[str]:
         norm = f"{norm}/CC-MAIN-LATEST"
     url = f"{base_url}/{norm}/warc.paths.gz"
 
-    resp = requests.get(url, timeout=10)
-    resp.raise_for_status()
+    attempt = 0
+    backoff = 1.0
 
-    keys: List[str] = []
-    with gzip.GzipFile(fileobj=io.BytesIO(resp.content)) as gz:
-        for line in gz:
-            key = line.decode("utf-8").strip()
-            if key.endswith(".warc.gz"):
-                keys.append(f"crawl-data/{key}")
-                if len(keys) >= max_keys:
-                    break
-    return keys
+    while attempt < 3:
+        try:
+            resp = requests.get(url, timeout=10)
+            resp.raise_for_status()
+
+            keys: List[str] = []
+            with gzip.GzipFile(fileobj=io.BytesIO(resp.content)) as gz:
+                for line in gz:
+                    key = line.decode("utf-8").strip()
+                    if key.endswith(".warc.gz"):
+                        keys.append(f"crawl-data/{key}")
+                        if len(keys) >= max_keys:
+                            break
+            return keys
+        except requests.RequestException:
+            attempt += 1
+            if attempt >= 3:
+                raise
+            time.sleep(backoff)
+            backoff *= 2
+
+    return []
 
 
 def stream_and_extract_http(
@@ -393,18 +408,29 @@ def stream_and_extract_http(
 
     url = f"https://data.commoncrawl.org/{key}"
 
-    headers = {"User-Agent": user_agent}
-    with requests.get(url, stream=True, headers=headers) as resp:
-        resp.raise_for_status()
-        with gzip.GzipFile(fileobj=resp.raw) as gz:
-            for record in ArchiveIterator(gz):
-                if record.rec_type != "response":
-                    continue
-                uri = record.rec_headers.get_header("WARC-Target-URI")
-                if not uri:
-                    continue
-                path = urlparse(uri).path
-                if any(path.endswith(ext) for ext in target_exts):
-                    yield uri, record.content_stream().read()
-    time.sleep(rate_limit)
+    attempt = 0
+    backoff = 1.0
 
+    while attempt < 3:
+        try:
+            headers = {"User-Agent": user_agent}
+            with requests.get(url, stream=True, headers=headers) as resp:
+                resp.raise_for_status()
+                with gzip.GzipFile(fileobj=resp.raw) as gz:
+                    for record in ArchiveIterator(gz):
+                        if record.rec_type != "response":
+                            continue
+                        uri = record.rec_headers.get_header("WARC-Target-URI")
+                        if not uri:
+                            continue
+                        path = urlparse(uri).path
+                        if any(path.endswith(ext) for ext in target_exts):
+                            yield uri, record.content_stream().read()
+            time.sleep(rate_limit)
+            break
+        except requests.RequestException:
+            attempt += 1
+            if attempt >= 3:
+                raise
+            time.sleep(backoff)
+            backoff *= 2
