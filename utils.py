@@ -3,6 +3,31 @@
 from typing import Dict, List, Set
 
 
+def extension_from_url(url: str) -> str:
+    """Return the file extension from ``url`` if present.
+
+    The function strips query parameters and fragments, then checks for
+    common compound extensions such as ``.tar.gz``. If no extension can be
+    determined an empty string is returned.
+    """
+
+    import os
+    from urllib.parse import urlparse
+
+    path = urlparse(url).path
+    if not path or path.endswith("/"):
+        return ""
+
+    filename = os.path.basename(path)
+
+    for ext in (".tar.gz", ".tar.bz2", ".tar.xz"):
+        if filename.endswith(ext):
+            return ext
+
+    _, ext = os.path.splitext(filename)
+    return ext
+
+
 def fetch_and_parse_robots(base_url: str, user_agent: str):
     """Retrieve and parse ``/robots.txt`` for ``base_url``.
 
@@ -314,6 +339,7 @@ def load_state(path: str) -> Set[str]:
 def save_state(path: str, completed: Set[str]) -> None:
     """Write ``completed`` WARC keys to ``path``."""
     import json
+
     tmp = {"completed": sorted(completed)}
     with open(path, "w", encoding="utf-8") as fh:
         json.dump(tmp, fh, indent=2)
