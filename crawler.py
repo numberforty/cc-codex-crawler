@@ -15,7 +15,9 @@ CRAWL_PREFIX = os.getenv("CRAWL_PREFIX", "crawl-data")
 # Parse target extensions into a Python set
 _default_exts = ".py,.js,.java,.cpp,.go"
 TARGET_EXTENSIONS = {
-    ext.strip() for ext in os.getenv("TARGET_EXTENSIONS", _default_exts).split(",") if ext.strip()
+    ext.strip()
+    for ext in os.getenv("TARGET_EXTENSIONS", _default_exts).split(",")
+    if ext.strip()
 }
 
 OUTPUT_DIR = os.getenv("OUTPUT_DIR", "./output")
@@ -122,7 +124,12 @@ def main() -> None:
                 args.rate_limit,
                 USER_AGENT,
             ):
-                ext = next((e for e in TARGET_EXTENSIONS if url.endswith(e)), None)
+                ext = next(
+                    (
+                        e for e in TARGET_EXTENSIONS if url.endswith(e)
+                    ),
+                    None,
+                )
                 if not ext:
                     continue
                 with lock:

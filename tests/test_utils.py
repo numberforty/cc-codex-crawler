@@ -4,15 +4,21 @@ from pathlib import Path
 import sys
 import os
 
-import pytest
+sys.path.insert(
+    0,
+    os.path.abspath(os.path.join(os.path.dirname(__file__), "..")),
+)  # noqa: E402
+import utils  # noqa: E402
+import pytest  # noqa: E402
+from warcio.warcwriter import WARCWriter  # noqa: E402
+from warcio.statusandheaders import StatusAndHeaders  # noqa: E402
 
-sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
-import utils
-
+sys.path.append(
+    os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
+)
 
 # Helper to create a small WARC file for testing
-from warcio.warcwriter import WARCWriter
-from warcio.statusandheaders import StatusAndHeaders
+
 
 def _create_warc(path: Path):
     with path.open("wb") as fh:
@@ -20,7 +26,10 @@ def _create_warc(path: Path):
         writer = WARCWriter(gz, gzip=False)
         headers = StatusAndHeaders("200 OK", [("Content-Type", "text/plain")])
         record = writer.create_warc_record(
-            "http://example.com/test.py", "response", payload=io.BytesIO(b"print(1)"), http_headers=headers
+            "http://example.com/test.py",
+            "response",
+            payload=io.BytesIO(b"print(1)"),
+            http_headers=headers,
         )
         writer.write_record(record)
         gz.close()

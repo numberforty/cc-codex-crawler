@@ -24,7 +24,12 @@ def format_file(path: Path) -> bool:
     """
 
     changed = isort.file(str(path))
-    changed |= format_file_in_place(path, fast=False, mode=FileMode(), write_back=WriteBack.YES)
+    changed |= format_file_in_place(
+        path,
+        fast=False,
+        mode=FileMode(),
+        write_back=WriteBack.YES,
+    )
     return changed
 
 
