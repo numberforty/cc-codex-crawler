@@ -140,7 +140,7 @@ def test_list_warc_keys_http(tmp_path, monkeypatch):
     monkeypatch.setattr("requests.get", fake_get)
 
     keys = utils.list_warc_keys_http("crawl-data/CC-MAIN-2020-50", 1)
-    assert keys == ["a.warc.gz"]
+    assert keys == ["crawl-data/a.warc.gz"]
 
 
 def test_stream_and_extract_http(tmp_path, monkeypatch):
@@ -162,14 +162,17 @@ def test_stream_and_extract_http(tmp_path, monkeypatch):
             self.raw.close()
 
     def fake_get(url, stream=True, headers=None):
-        assert url.endswith("sample.warc.gz")
+        assert (
+            url
+            == "https://data.commoncrawl.org/crawl-data/dir/sample.warc.gz"
+        )
         return DummyResp(warc_path)
 
     monkeypatch.setattr("requests.get", fake_get)
 
     records = list(
         utils.stream_and_extract_http(
-            "dir/sample.warc.gz",
+            "crawl-data/dir/sample.warc.gz",
             [".py"],
             rate_limit=0,
             user_agent="ua",
