@@ -17,6 +17,7 @@ MAX_WARCS = int(os.getenv("MAX_WARCS", "10"))
 SAMPLES_PER_EXT = int(os.getenv("SAMPLES_PER_EXT", "1000"))
 RATE_LIMIT_SECONDS = float(os.getenv("RATE_LIMIT_SECONDS", "1.0"))
 USER_AGENT = os.getenv("USER_AGENT", "cc-codex-crawler/1.0")
+MAX_WORKERS = int(os.getenv("MAX_WORKERS", "4"))
 
 os.makedirs(OUTPUT_DIR, exist_ok=True)
 
@@ -32,6 +33,8 @@ def main() -> None:
     import argparse
     import logging
     from collections import defaultdict
+    from concurrent.futures import ThreadPoolExecutor, as_completed
+    import threading
 
     import boto3
 
@@ -54,6 +57,12 @@ def main() -> None:
         type=float,
         default=RATE_LIMIT_SECONDS,
         help="Seconds to sleep between requests",
+    )
+    parser.add_argument(
+        "--workers",
+        type=int,
+        default=MAX_WORKERS,
+        help="Maximum number of concurrent workers",
     )
 
     args = parser.parse_args()
@@ -84,8 +93,9 @@ def main() -> None:
         return
 
     saved_counts = defaultdict(int)
+    lock = threading.Lock()
 
-    for key in warc_keys:
+    def process_warc(key: str) -> None:
         logger.info("Processing %s", key)
         try:
             for url, data in stream_and_extract(
@@ -96,27 +106,27 @@ def main() -> None:
                 args.rate_limit,
                 USER_AGENT,
             ):
-                ext = next(
-                    (e for e in TARGET_EXTENSIONS if url.endswith(e)), None
-                )
+                ext = next((e for e in TARGET_EXTENSIONS if url.endswith(e)), None)
                 if not ext:
                     continue
-                if saved_counts[ext] >= args.samples:
-                    continue
+                with lock:
+                    if saved_counts[ext] >= args.samples:
+                        continue
                 try:
                     path = save_file(data, url, OUTPUT_DIR)
-                    saved_counts[ext] += 1
+                    with lock:
+                        saved_counts[ext] += 1
                     logger.info("Saved %s (%s)", path, ext)
                 except Exception as exc:  # pragma: no cover - disk failure
                     logger.warning("Failed to save %s: %s", url, exc)
-
-                if all(count >= args.samples for count in saved_counts.values()) and (
-                    len(saved_counts) >= len(TARGET_EXTENSIONS)
-                ):
-                    logger.info("Reached sample target for all extensions")
-                    return
         except Exception as exc:  # pragma: no cover - streaming failure
             logger.warning("Error processing %s: %s", key, exc)
+
+    max_workers = min(args.workers, len(warc_keys)) or 1
+    with ThreadPoolExecutor(max_workers=max_workers) as executor:
+        futures = [executor.submit(process_warc, k) for k in warc_keys]
+        for fut in as_completed(futures):
+            fut.result()
 
 
 if __name__ == "__main__":
