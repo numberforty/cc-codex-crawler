@@ -1,6 +1,6 @@
 """Utility functions for the CC Codex crawler."""
 
-from typing import List
+from typing import Dict, List
 
 
 def fetch_and_parse_robots(base_url: str, user_agent: str):
@@ -51,6 +51,73 @@ def fetch_and_parse_robots(base_url: str, user_agent: str):
                 raise
             time.sleep(backoff)
             backoff *= 2
+
+
+class DomainRateLimiter:
+    """Per-domain rate limiter using ``crawl-delay`` directives."""
+
+    def __init__(self, default_delay: float = 1.0, user_agent: str = "*") -> None:
+        """Create a new :class:`DomainRateLimiter` instance.
+
+        Parameters
+        ----------
+        default_delay : float
+            Fallback delay in seconds when ``robots.txt`` does not specify one.
+        user_agent : str
+            ``User-Agent`` string for ``robots.txt`` requests.
+        """
+
+        self.default_delay = default_delay
+        self.user_agent = user_agent
+        self._last_access: Dict[str, float] = {}
+        self._delays: Dict[str, float] = {}
+
+    def _get_delay(self, url: str) -> float:
+        """Return the crawl delay for ``url``.
+
+        The ``robots.txt`` of the host is fetched on first access. Subsequent
+        calls reuse the cached value. Any network error results in
+        ``default_delay`` being used.
+        """
+
+        from urllib.parse import urlparse
+
+        parsed = urlparse(url)
+        host = parsed.netloc
+        if host in self._delays:
+            return self._delays[host]
+
+        base_url = f"{parsed.scheme}://{host}"
+        try:
+            parser = fetch_and_parse_robots(base_url, self.user_agent)
+            delay = parser.crawl_delay(self.user_agent)
+            if delay is None:
+                delay = self.default_delay
+        except Exception:
+            delay = self.default_delay
+
+        self._delays[host] = delay
+        return delay
+
+    def wait(self, url: str) -> None:
+        """Sleep if the host was accessed too recently."""
+
+        import time
+        from urllib.parse import urlparse
+
+        parsed = urlparse(url)
+        host = parsed.netloc
+        if not host:
+            return
+
+        delay = self._get_delay(url)
+        last = self._last_access.get(host)
+        if last is not None:
+            elapsed = time.time() - last
+            if elapsed < delay:
+                time.sleep(delay - elapsed)
+
+        self._last_access[host] = time.time()
 
 
 def list_warc_keys(s3_client, bucket: str, prefix: str, max_keys: int) -> List[str]:
