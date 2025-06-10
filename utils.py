@@ -114,3 +114,55 @@ def stream_and_extract(
                 raise
             time.sleep(backoff)
             backoff *= 2
+
+
+def save_file(data: bytes, url: str, output_dir: str) -> str:
+    """Save ``data`` to ``output_dir`` using a name derived from ``url``.
+
+    The function strips query parameters and fragments from the URL and
+    sanitizes the resulting path to create a safe filename. If the derived
+    filename already exists in ``output_dir``, a numeric suffix is appended
+    to avoid overwriting existing files.
+
+    Parameters
+    ----------
+    data : bytes
+        Binary data to write to disk.
+    url : str
+        Source URL of the data. The path portion (without query or fragment)
+        is used to derive the filename.
+    output_dir : str
+        Directory in which to save the file.
+
+    Returns
+    -------
+    str
+        The full path of the written file.
+    """
+
+    import os
+    import re
+    from urllib.parse import urlparse
+
+    parsed = urlparse(url)
+    base = os.path.basename(parsed.path)
+
+    # Fallback to a generic name when the path ends with a slash
+    if not base:
+        base = "file"
+
+    # Sanitize filename to avoid directory traversal or invalid characters
+    base = re.sub(r"[^a-zA-Z0-9._-]", "_", base)
+
+    name, ext = os.path.splitext(base)
+    candidate = base
+    counter = 1
+    while os.path.exists(os.path.join(output_dir, candidate)):
+        candidate = f"{name}_{counter}{ext}"
+        counter += 1
+
+    file_path = os.path.join(output_dir, candidate)
+    with open(file_path, "wb") as fh:
+        fh.write(data)
+
+    return file_path
