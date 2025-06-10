@@ -1,6 +1,6 @@
 """Utility functions for the CC Codex crawler."""
 
-from typing import Dict, List
+from typing import Dict, List, Set
 
 
 def fetch_and_parse_robots(base_url: str, user_agent: str):
@@ -283,3 +283,28 @@ def save_file(data: bytes, url: str, output_dir: str) -> str:
         fh.write(data)
 
     return file_path
+
+
+def load_state(path: str) -> Set[str]:
+    """Load completed WARC keys from ``path`` if it exists."""
+    import json
+    import os
+
+    if not os.path.exists(path):
+        return set()
+    try:
+        with open(path, "r", encoding="utf-8") as fh:
+            data = json.load(fh)
+        if isinstance(data, dict):
+            data = data.get("completed", [])
+    except Exception:
+        return set()
+    return {str(x) for x in data}
+
+
+def save_state(path: str, completed: Set[str]) -> None:
+    """Write ``completed`` WARC keys to ``path``."""
+    import json
+    tmp = {"completed": sorted(completed)}
+    with open(path, "w", encoding="utf-8") as fh:
+        json.dump(tmp, fh, indent=2)
