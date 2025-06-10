@@ -56,7 +56,11 @@ def fetch_and_parse_robots(base_url: str, user_agent: str):
 class DomainRateLimiter:
     """Per-domain rate limiter using ``crawl-delay`` directives."""
 
-    def __init__(self, default_delay: float = 1.0, user_agent: str = "*") -> None:
+    def __init__(
+        self,
+        default_delay: float = 1.0,
+        user_agent: str = "*",
+    ) -> None:
         """Create a new :class:`DomainRateLimiter` instance.
 
         Parameters
@@ -120,7 +124,12 @@ class DomainRateLimiter:
         self._last_access[host] = time.time()
 
 
-def list_warc_keys(s3_client, bucket: str, prefix: str, max_keys: int) -> List[str]:
+def list_warc_keys(
+    s3_client,
+    bucket: str,
+    prefix: str,
+    max_keys: int,
+) -> List[str]:
     """Return up to ``max_keys`` WARC file keys from an S3 prefix.
 
     The function iterates over an S3 paginator and collects object keys
