@@ -1,0 +1,6 @@
+openai
+boto3
+warcio
+tqdm
+python-dotenv
+requests
