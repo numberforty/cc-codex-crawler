@@ -1,12 +1,6 @@
 import os
 
-from utils import (
-    list_warc_keys,
-    stream_and_extract,
-    save_file,
-    load_state,
-    save_state,
-)
+from utils import list_warc_keys, load_state, save_file, save_state, stream_and_extract
 
 # Configuration from environment variables with sensible defaults
 S3_BUCKET = os.getenv("S3_BUCKET", "commoncrawl")
@@ -41,9 +35,9 @@ def main() -> None:
 
     import argparse
     import logging
+    import threading
     from collections import defaultdict
     from concurrent.futures import ThreadPoolExecutor, as_completed
-    import threading
 
     import boto3
 
@@ -94,9 +88,7 @@ def main() -> None:
     s3_client = boto3.client("s3")
 
     try:
-        warc_keys = list_warc_keys(
-            s3_client, S3_BUCKET, CRAWL_PREFIX, args.warcs
-        )
+        warc_keys = list_warc_keys(s3_client, S3_BUCKET, CRAWL_PREFIX, args.warcs)
     except Exception as exc:  # pragma: no cover - network failure
         logger.warning("Failed to list WARC files: %s", exc)
         return
@@ -125,9 +117,7 @@ def main() -> None:
                 USER_AGENT,
             ):
                 ext = next(
-                    (
-                        e for e in TARGET_EXTENSIONS if url.endswith(e)
-                    ),
+                    (e for e in TARGET_EXTENSIONS if url.endswith(e)),
                     None,
                 )
                 if not ext:

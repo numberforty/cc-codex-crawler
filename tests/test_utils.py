@@ -1,21 +1,20 @@
-import io
 import gzip
-from pathlib import Path
-import sys
+import io
 import os
+import sys
+from pathlib import Path
 
 sys.path.insert(
     0,
     os.path.abspath(os.path.join(os.path.dirname(__file__), "..")),
 )  # noqa: E402
-import utils  # noqa: E402
 import pytest  # noqa: E402
-from warcio.warcwriter import WARCWriter  # noqa: E402
 from warcio.statusandheaders import StatusAndHeaders  # noqa: E402
+from warcio.warcwriter import WARCWriter  # noqa: E402
 
-sys.path.append(
-    os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
-)
+import utils  # noqa: E402
+
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 
 # Helper to create a small WARC file for testing
 

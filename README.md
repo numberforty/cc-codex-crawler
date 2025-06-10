@@ -6,20 +6,7 @@ command line crawler that streams WARC files from S3 and utilities for handling
 the downloaded data.
 
 ```
-+------------------+          +-----------+
-| codex_crawler.py |  --->    | crawler.py|
-+------------------+          +-----------+
-           |                        |
-           v                        v
-        OpenAI                  Common Crawl
-           |                        |
-           +-----------+------------+
-                       |
-                       v
-                   utils.py
-                       |
-                       v
-                    OUTPUT_DIR
+crawler.py --> utils.py --> OUTPUT_DIR
 ```
 
 ## Quickstart
@@ -32,11 +19,7 @@ the downloaded data.
    ```bash
    export OPENAI_API_KEY=<your key>
    ```
-3. Run the codex step (optional):
-   ```bash
-   python codex_crawler.py
-   ```
-4. Start crawling Common Crawl:
+3. Start crawling Common Crawl:
    ```bash
    python crawler.py --warcs 5 --samples 100
    ```
