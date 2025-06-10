@@ -1,5 +1,7 @@
 import os
 
+from utils import list_warc_keys, stream_and_extract, save_file
+
 # Configuration from environment variables with sensible defaults
 S3_BUCKET = os.getenv("S3_BUCKET", "commoncrawl")
 CRAWL_PREFIX = os.getenv("CRAWL_PREFIX", "crawl-data")
@@ -17,3 +19,105 @@ RATE_LIMIT_SECONDS = float(os.getenv("RATE_LIMIT_SECONDS", "1.0"))
 USER_AGENT = os.getenv("USER_AGENT", "cc-codex-crawler/1.0")
 
 os.makedirs(OUTPUT_DIR, exist_ok=True)
+
+
+def main() -> None:
+    """Entry point for the CLI crawler.
+
+    The function parses command line arguments, configures logging and then
+    iterates over WARC files from the Common Crawl. Matching records are saved
+    to ``OUTPUT_DIR`` using :func:`save_file`.
+    """
+
+    import argparse
+    import logging
+    from collections import defaultdict
+
+    import boto3
+
+    parser = argparse.ArgumentParser(description="CC Codex crawler")
+    parser.add_argument(
+        "--warcs",
+        type=int,
+        default=MAX_WARCS,
+        help="Number of WARC files to process",
+    )
+    parser.add_argument(
+        "--samples",
+        type=int,
+        default=SAMPLES_PER_EXT,
+        help="Number of files to save per extension",
+    )
+    parser.add_argument(
+        "--rate-limit",
+        dest="rate_limit",
+        type=float,
+        default=RATE_LIMIT_SECONDS,
+        help="Seconds to sleep between requests",
+    )
+
+    args = parser.parse_args()
+
+    # Configure logging: console handler and file handler
+    logger = logging.getLogger()
+    logger.setLevel(logging.INFO)
+    formatter = logging.Formatter("%(asctime)s - %(levelname)s - %(message)s")
+
+    console_handler = logging.StreamHandler()
+    console_handler.setLevel(logging.INFO)
+    console_handler.setFormatter(formatter)
+    logger.addHandler(console_handler)
+
+    file_handler = logging.FileHandler("crawler.log")
+    file_handler.setLevel(logging.INFO)
+    file_handler.setFormatter(formatter)
+    logger.addHandler(file_handler)
+
+    s3_client = boto3.client("s3")
+
+    try:
+        warc_keys = list_warc_keys(
+            s3_client, S3_BUCKET, CRAWL_PREFIX, args.warcs
+        )
+    except Exception as exc:  # pragma: no cover - network failure
+        logger.warning("Failed to list WARC files: %s", exc)
+        return
+
+    saved_counts = defaultdict(int)
+
+    for key in warc_keys:
+        logger.info("Processing %s", key)
+        try:
+            for url, data in stream_and_extract(
+                s3_client,
+                S3_BUCKET,
+                key,
+                TARGET_EXTENSIONS,
+                args.rate_limit,
+                USER_AGENT,
+            ):
+                ext = next(
+                    (e for e in TARGET_EXTENSIONS if url.endswith(e)), None
+                )
+                if not ext:
+                    continue
+                if saved_counts[ext] >= args.samples:
+                    continue
+                try:
+                    path = save_file(data, url, OUTPUT_DIR)
+                    saved_counts[ext] += 1
+                    logger.info("Saved %s (%s)", path, ext)
+                except Exception as exc:  # pragma: no cover - disk failure
+                    logger.warning("Failed to save %s: %s", url, exc)
+
+                if all(count >= args.samples for count in saved_counts.values()) and (
+                    len(saved_counts) >= len(TARGET_EXTENSIONS)
+                ):
+                    logger.info("Reached sample target for all extensions")
+                    return
+        except Exception as exc:  # pragma: no cover - streaming failure
+            logger.warning("Error processing %s: %s", key, exc)
+
+
+if __name__ == "__main__":
+    main()
