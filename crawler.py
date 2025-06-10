@@ -1,6 +1,12 @@
 import os
 
-from utils import list_warc_keys, stream_and_extract, save_file
+from utils import (
+    list_warc_keys,
+    stream_and_extract,
+    save_file,
+    load_state,
+    save_state,
+)
 
 # Configuration from environment variables with sensible defaults
 S3_BUCKET = os.getenv("S3_BUCKET", "commoncrawl")
@@ -18,6 +24,7 @@ SAMPLES_PER_EXT = int(os.getenv("SAMPLES_PER_EXT", "1000"))
 RATE_LIMIT_SECONDS = float(os.getenv("RATE_LIMIT_SECONDS", "1.0"))
 USER_AGENT = os.getenv("USER_AGENT", "cc-codex-crawler/1.0")
 MAX_WORKERS = int(os.getenv("MAX_WORKERS", "4"))
+STATE_FILE = os.getenv("STATE_FILE", "crawler_state.json")
 
 os.makedirs(OUTPUT_DIR, exist_ok=True)
 
@@ -92,8 +99,17 @@ def main() -> None:
         logger.warning("Failed to list WARC files: %s", exc)
         return
 
+    completed_keys = load_state(STATE_FILE)
+    if completed_keys:
+        warc_keys = [k for k in warc_keys if k not in completed_keys]
+
+    if not warc_keys:
+        logger.info("No new WARC files to process")
+        return
+
     saved_counts = defaultdict(int)
     lock = threading.Lock()
+    state_lock = threading.Lock()
 
     def process_warc(key: str) -> None:
         logger.info("Processing %s", key)
@@ -121,6 +137,10 @@ def main() -> None:
                     logger.warning("Failed to save %s: %s", url, exc)
         except Exception as exc:  # pragma: no cover - streaming failure
             logger.warning("Error processing %s: %s", key, exc)
+        finally:
+            with state_lock:
+                completed_keys.add(key)
+                save_state(STATE_FILE, completed_keys)
 
     max_workers = min(args.workers, len(warc_keys)) or 1
     with ThreadPoolExecutor(max_workers=max_workers) as executor:
