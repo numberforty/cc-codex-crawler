@@ -3,6 +3,56 @@
 from typing import List
 
 
+def fetch_and_parse_robots(base_url: str, user_agent: str):
+    """Retrieve and parse ``/robots.txt`` for ``base_url``.
+
+    The function downloads the robots.txt file using ``requests`` with
+    a custom ``User-Agent`` header. Network errors are retried with
+    exponential backoff (up to three attempts). The contents are parsed
+    using :class:`urllib.robotparser.RobotFileParser`.
+
+    Parameters
+    ----------
+    base_url : str
+        Base URL from which to fetch ``/robots.txt``. The scheme must be
+        included.
+    user_agent : str
+        ``User-Agent`` string used for the HTTP request.
+
+    Returns
+    -------
+    urllib.robotparser.RobotFileParser
+        Parsed robots.txt object.
+    """
+
+    import time
+    from urllib.parse import urljoin
+    from urllib.robotparser import RobotFileParser
+
+    import requests
+
+    robots_url = urljoin(base_url, "/robots.txt")
+    attempt = 0
+    backoff = 1.0
+
+    while attempt < 3:
+        try:
+            headers = {"User-Agent": user_agent}
+            resp = requests.get(robots_url, headers=headers, timeout=10)
+            resp.raise_for_status()
+
+            parser = RobotFileParser()
+            parser.set_url(robots_url)
+            parser.parse(resp.text.splitlines())
+            return parser
+        except requests.RequestException:
+            attempt += 1
+            if attempt >= 3:
+                raise
+            time.sleep(backoff)
+            backoff *= 2
+
+
 def list_warc_keys(s3_client, bucket: str, prefix: str, max_keys: int) -> List[str]:
     """Return up to ``max_keys`` WARC file keys from an S3 prefix.
 
