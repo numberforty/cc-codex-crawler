@@ -19,9 +19,13 @@ crawler.py --> utils.py --> OUTPUT_DIR
    ```bash
    export OPENAI_API_KEY=<your key>
    ```
-3. Start crawling Common Crawl:
+3. Start crawling Common Crawl (AWS credentials required):
    ```bash
    python crawler.py --warcs 5 --samples 100
+   ```
+4. Or run in HTTP mode without credentials:
+   ```bash
+   python crawler.py --mode http --warcs 5 --samples 100
    ```
 
 ## CLI Examples
@@ -37,6 +41,10 @@ crawler.py --> utils.py --> OUTPUT_DIR
 * Override target extensions:
   ```bash
   TARGET_EXTENSIONS=.py,.js python crawler.py
+  ```
+* Run without AWS credentials:
+  ```bash
+  python crawler.py --mode http --warcs 20
   ```
 
 ## Contributing

@@ -1,6 +1,14 @@
 import os
 
-from utils import list_warc_keys, load_state, save_file, save_state, stream_and_extract
+from utils import (
+    list_warc_keys,
+    list_warc_keys_http,
+    load_state,
+    save_file,
+    save_state,
+    stream_and_extract,
+    stream_and_extract_http,
+)
 
 # Configuration from environment variables with sensible defaults
 S3_BUCKET = os.getenv("S3_BUCKET", "commoncrawl")
@@ -67,6 +75,12 @@ def main() -> None:
         default=MAX_WORKERS,
         help="Maximum number of concurrent workers",
     )
+    parser.add_argument(
+        "--mode",
+        choices=["aws", "http"],
+        default="aws",
+        help="Access S3 via the AWS SDK or direct HTTPS",
+    )
 
     args = parser.parse_args()
 
@@ -85,13 +99,28 @@ def main() -> None:
     file_handler.setFormatter(formatter)
     logger.addHandler(file_handler)
 
-    s3_client = boto3.client("s3")
+    use_http = args.mode == "http"
+    s3_client = None
+    if not use_http:
+        s3_client = boto3.client("s3")
 
     try:
-        warc_keys = list_warc_keys(s3_client, S3_BUCKET, CRAWL_PREFIX, args.warcs)
+        if use_http:
+            warc_keys = list_warc_keys_http(CRAWL_PREFIX, args.warcs)
+        else:
+            warc_keys = list_warc_keys(s3_client, S3_BUCKET, CRAWL_PREFIX, args.warcs)
     except Exception as exc:  # pragma: no cover - network failure
-        logger.warning("Failed to list WARC files: %s", exc)
-        return
+        if not use_http:
+            logger.warning("Falling back to HTTP listing due to: %s", exc)
+            try:
+                warc_keys = list_warc_keys_http(CRAWL_PREFIX, args.warcs)
+                use_http = True
+            except Exception as exc2:
+                logger.warning("Failed to list WARC files: %s", exc2)
+                return
+        else:
+            logger.warning("Failed to list WARC files: %s", exc)
+            return
 
     completed_keys = load_state(STATE_FILE)
     if completed_keys:
@@ -108,14 +137,23 @@ def main() -> None:
     def process_warc(key: str) -> None:
         logger.info("Processing %s", key)
         try:
-            for url, data in stream_and_extract(
-                s3_client,
-                S3_BUCKET,
-                key,
-                TARGET_EXTENSIONS,
-                args.rate_limit,
-                USER_AGENT,
-            ):
+            if use_http:
+                iterator = stream_and_extract_http(
+                    key,
+                    TARGET_EXTENSIONS,
+                    args.rate_limit,
+                    USER_AGENT,
+                )
+            else:
+                iterator = stream_and_extract(
+                    s3_client,
+                    S3_BUCKET,
+                    key,
+                    TARGET_EXTENSIONS,
+                    args.rate_limit,
+                    USER_AGENT,
+                )
+            for url, data in iterator:
                 ext = next(
                     (e for e in TARGET_EXTENSIONS if url.endswith(e)),
                     None,
