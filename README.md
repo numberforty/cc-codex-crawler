@@ -1,61 +1,77 @@
 # CC Codex Crawler
 
-CC Codex Crawler downloads source files from the Common Crawl dataset and
-prepares them for analysis or use with language models. The project contains a
-command line crawler that streams WARC files from S3 and utilities for handling
-the downloaded data.
+CC Codex Crawler downloads files from the Common Crawl dataset and prepares them
+for further analysis. It provides a command line utility that streams WARC files
+and saves matching records to disk.
 
 ```
 crawler.py --> utils.py --> OUTPUT_DIR
 ```
 
-## Quickstart
+## Installation
 
-1. Install dependencies:
-   ```bash
-   pip install -r requirements.txt
-   ```
-2. _(Optional)_ configure an OpenAI API key if you plan to use the
-   optional utilities:
-   ```bash
-   export OPENAI_API_KEY=<your key>
-   ```
-3. Start crawling Common Crawl using AWS credentials:
-   ```bash
-   python crawler.py --warcs 5 --samples 100
-   ```
-4. Or run in HTTP mode without AWS credentials. **Set** `CRAWL_PREFIX` to a
-   specific crawl (for example `crawl-data/CC-MAIN-2024-22`):
-   ```bash
-   CRAWL_PREFIX=crawl-data/CC-MAIN-2024-22 python crawler.py --mode http --warcs 5 --samples 100
-   ```
+Install the required dependencies with `pip`:
 
-## CLI Examples
+```bash
+pip install -r requirements.txt
+```
 
-* Process more files with multiple workers:
-  ```bash
-  python crawler.py --warcs 20 --samples 500 --workers 8
-  ```
-* Customize request rate:
-  ```bash
-  python crawler.py --rate-limit 0.5
-  ```
-* Override target extensions:
-  ```bash
-  TARGET_EXTENSIONS=.py,.js python crawler.py
-  ```
-* Run with AWS credentials (default):
-  ```bash
-  python crawler.py --warcs 20
-  ```
-* Run without AWS credentials (HTTP mode). Always set `CRAWL_PREFIX` to a
-  specific crawl:
-  ```bash
-  CRAWL_PREFIX=crawl-data/CC-MAIN-2024-22 python crawler.py --mode http --warcs 20
-  ```
+Optionally set an OpenAI API key if you plan to use the optional utilities:
+
+```bash
+export OPENAI_API_KEY=<your key>
+```
+
+## Running the crawler
+
+The crawler can operate either with AWS credentials or via direct HTTPS
+requests. By default it searches for common source code extensions, but this can
+be customised via environment variables.
+
+The most common options are listed below:
+
+| Variable | Description | Default |
+|----------|-------------|---------|
+| `S3_BUCKET` | S3 bucket name | `commoncrawl` |
+| `CRAWL_PREFIX` | Crawl prefix when using `--mode http` | `crawl-data` |
+| `TARGET_EXTENSIONS` | Comma separated list of extensions to save | `.py,.js,.java,.cpp,.go` |
+| `OUTPUT_DIR` | Directory for downloaded files | `./output` |
+
+A simple crawl using AWS credentials:
+
+```bash
+python crawler.py --warcs 5 --samples 100
+```
+
+Using HTTPS mode without credentials (always specify a concrete crawl):
+
+```bash
+CRAWL_PREFIX=crawl-data/CC-MAIN-2024-22 \
+python crawler.py --mode http --warcs 5 --samples 100
+```
+
+## Example: downloading MP3 files
+
+To gather a small corpus of audio files, override the target extensions and
+request more WARC files. The following command fetches up to 50 MP3 samples:
+
+```bash
+CRAWL_PREFIX=crawl-data/CC-MAIN-2024-22 \
+TARGET_EXTENSIONS=.mp3 \
+python crawler.py --mode http --warcs 20 --samples 50
+```
+
+Typical log output looks like:
+
+```
+2025-06-11 00:00:00,000 - INFO - Processing crawl-data/.../sample.warc.gz
+2025-06-11 00:00:10,000 - INFO - Saved output/track_001.mp3 (.mp3)
+```
+
+See [docs/USAGE.md](docs/USAGE.md) for more details and additional examples.
 
 ## Contributing
 
-Contributions are welcome! Please see [CONTRIBUTING.md](CONTRIBUTING.md) for
+Contributions are welcome! See [CONTRIBUTING.md](CONTRIBUTING.md) for
 instructions. The repository uses `pre-commit` hooks and `pytest` for testing
 all pull requests.
