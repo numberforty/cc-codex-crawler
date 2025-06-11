@@ -32,3 +32,13 @@ Typical output lines look like this:
 
 The downloaded files are written to the directory specified by `OUTPUT_DIR`
 (`./output` by default).
+
+## CDX index mode
+
+When you only need a small sample you can use the CDX index to download
+individual records without streaming full WARC files:
+
+```powershell
+$env:CRAWL_PREFIX = "CC-MAIN-2024-22"
+python crawler.py --mode index --samples 50 --extensions .mp3
+```

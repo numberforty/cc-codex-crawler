@@ -1,4 +1,10 @@
+import io
+import json
 import os
+import time
+
+import requests
+from warcio.archiveiterator import ArchiveIterator
 
 from utils import (
     list_warc_keys,
@@ -13,6 +19,8 @@ from utils import (
 # Configuration from environment variables with sensible defaults
 S3_BUCKET = os.getenv("S3_BUCKET", "commoncrawl")
 CRAWL_PREFIX = os.getenv("CRAWL_PREFIX", "crawl-data")
+DEFAULT_CRAWL = "CC-MAIN-2024-22"
+DEFAULT_EXT = ".mp3"
 
 # Parse target extensions into a Python set
 _default_exts = ".py,.js,.java,.cpp,.go"
@@ -77,9 +85,14 @@ def main() -> None:
     )
     parser.add_argument(
         "--mode",
-        choices=["aws", "http"],
+        choices=["aws", "http", "index"],
         default="aws",
-        help="Access S3 via the AWS SDK or direct HTTPS",
+        help="Access S3 via the AWS SDK, direct HTTPS or the CDX index",
+    )
+    parser.add_argument(
+        "--extensions",
+        dest="extensions",
+        help="Extension for index mode (e.g., .mp3)",
     )
 
     args = parser.parse_args()
@@ -99,9 +112,78 @@ def main() -> None:
     file_handler.setFormatter(formatter)
     logger.addHandler(file_handler)
 
+    if args.mode == "index":
+        crawl = os.getenv("CRAWL_PREFIX", DEFAULT_CRAWL)
+        ext = args.extensions or DEFAULT_EXT
+        idx_url = f"http://index.commoncrawl.org/{crawl}-index?url=*{ext}&output=json"
+
+        attempt = 0
+        backoff = 1.0
+        while attempt < 3:
+            try:
+                resp = requests.get(idx_url, timeout=10)
+                resp.raise_for_status()
+                break
+            except (
+                requests.RequestException
+            ) as exc:  # pragma: no cover - network failure
+                attempt += 1
+                if attempt >= 3:
+                    logger.warning("Failed to query index: %s", exc)
+                    return
+                time.sleep(backoff)
+                backoff *= 2
+
+        count = 0
+        for line in resp.text.splitlines():
+            if count >= args.samples:
+                break
+            entry = json.loads(line)
+            filename = entry["filename"]
+            offset = int(entry["offset"])
+            length = int(entry["length"])
+            url = entry["url"]
+
+            warc_url = f"https://data.commoncrawl.org/{filename}"
+            headers = {"Range": f"bytes={offset}-{offset + length - 1}"}
+
+            attempt2 = 0
+            backoff2 = 1.0
+            while attempt2 < 3:
+                try:
+                    r = requests.get(warc_url, headers=headers, timeout=10)
+                    r.raise_for_status()
+                    break
+                except (
+                    requests.RequestException
+                ) as exc:  # pragma: no cover - network failure
+                    attempt2 += 1
+                    if attempt2 >= 3:
+                        logger.warning("Failed to fetch range: %s", exc)
+                        r = None
+                        break
+                    time.sleep(backoff2)
+                    backoff2 *= 2
+
+            if not r:
+                continue
+
+            stream = io.BytesIO(r.content)
+            for rec in ArchiveIterator(stream, arc2warc=True):
+                if rec.rec_type == "response" and url.endswith(ext):
+                    data = rec.content_stream().read()
+                    try:
+                        save_file(data, url, OUTPUT_DIR)
+                        count += 1
+                        logger.info("Saved %s (%d/%d)", url, count, args.samples)
+                    except Exception as exc:  # pragma: no cover - disk failure
+                        logger.warning("Failed to save %s: %s", url, exc)
+                    break
+        return
+
     use_http = args.mode == "http"
     s3_client = None
-    if not use_http:
+    if args.mode == "aws":
         s3_client = boto3.client("s3")
 
     try:
