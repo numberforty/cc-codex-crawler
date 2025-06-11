@@ -1,7 +1,8 @@
 # Usage Guide
 
-This document expands on the information in the project README and demonstrates
-how to configure the crawler for different file types.
+This document expands on the information in the project
+[README](../README.md) and demonstrates how to configure the crawler for
+different file types.
 
 ## Downloading MP3 Samples
 
