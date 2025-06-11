@@ -368,11 +368,14 @@ def list_warc_keys_http(prefix: str, max_keys: int) -> List[str]:
 
     base_url = "https://data.commoncrawl.org"
     norm = prefix.strip("/")
-    appended_latest = False
-    if "CC-MAIN" not in norm:
-        norm = f"{norm}/CC-MAIN-LATEST"
-        appended_latest = True
-    url = f"{base_url}/{norm}/warc.paths.gz"
+
+    # Ensure we only prepend "crawl-data/" once
+    if not norm.startswith("crawl-data/"):
+        prefix_path = f"crawl-data/{norm}"
+    else:
+        prefix_path = norm
+
+    url = f"{base_url}/{prefix_path}/warc.paths.gz"
 
     attempt = 0
     backoff = 1.0
@@ -380,10 +383,10 @@ def list_warc_keys_http(prefix: str, max_keys: int) -> List[str]:
     while attempt < 3:
         try:
             resp = requests.get(url, timeout=10)
-            if resp.status_code == 404 and appended_latest:
+            if resp.status_code == 404:
                 raise RuntimeError(
-                    "CC-MAIN-LATEST not found. Set CRAWL_PREFIX to a specific crawl, "
-                    "e.g., 'crawl-data/CC-MAIN-2024-22'."
+                    f"HTTP listing not found for prefix '{prefix_path}'. "
+                    f"Use a valid CRAWL_PREFIX, e.g., 'crawl-data/CC-MAIN-2025-21'."
                 )
             resp.raise_for_status()
 

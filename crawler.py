@@ -106,14 +106,16 @@ def main() -> None:
 
     try:
         if use_http:
-            warc_keys = list_warc_keys_http(CRAWL_PREFIX, args.warcs)
+            prefix = os.getenv("CRAWL_PREFIX", CRAWL_PREFIX).strip("/")
+            warc_keys = list_warc_keys_http(prefix, args.warcs)
         else:
             warc_keys = list_warc_keys(s3_client, S3_BUCKET, CRAWL_PREFIX, args.warcs)
     except Exception as exc:  # pragma: no cover - network failure
         if not use_http:
             logger.warning("Falling back to HTTP listing due to: %s", exc)
             try:
-                warc_keys = list_warc_keys_http(CRAWL_PREFIX, args.warcs)
+                prefix = os.getenv("CRAWL_PREFIX", CRAWL_PREFIX).strip("/")
+                warc_keys = list_warc_keys_http(prefix, args.warcs)
                 use_http = True
             except Exception as exc2:
                 logger.warning("Failed to list WARC files: %s", exc2)
