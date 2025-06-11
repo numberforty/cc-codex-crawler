@@ -1,18 +1,25 @@
 # Usage Guide
 
-This document expands on the information in the project README and demonstrates
-how to configure the crawler for different file types.
+This document expands on the information in the project
+[README](../README.md) and demonstrates how to configure the crawler for
+different file types.
 
 ## Downloading MP3 Samples
 
 The crawler targets source code files by default. To download MP3 files instead,
 set the `TARGET_EXTENSIONS` environment variable and specify the desired number
-of samples. The example below retrieves up to 50 MP3 files using direct HTTPS
-access.
+of samples. Below are examples for both PowerShell and the Windows command
+prompt. Each retrieves up to 50 MP3 files using direct HTTPS access.
 
-```bash
-CRAWL_PREFIX=crawl-data/CC-MAIN-2024-22 \
-TARGET_EXTENSIONS=.mp3 \
+```powershell
+$env:CRAWL_PREFIX = "crawl-data/CC-MAIN-2024-22"
+$env:TARGET_EXTENSIONS = ".mp3"
+python crawler.py --mode http --warcs 20 --samples 50
+```
+
+```batch
+set CRAWL_PREFIX=crawl-data/CC-MAIN-2024-22
+set TARGET_EXTENSIONS=.mp3
 python crawler.py --mode http --warcs 20 --samples 50
 ```
 
