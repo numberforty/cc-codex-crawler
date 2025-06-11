@@ -70,6 +70,16 @@ Typical log output looks like:
 2025-06-11 00:00:10,000 - INFO - Saved output/track_001.mp3 (.mp3)
 ```
 
+## CDX index mode
+
+Instead of streaming entire WARC files you can fetch specific records using
+the Common Crawl index:
+
+```bash
+CRAWL_PREFIX=CC-MAIN-2024-22 \
+python crawler.py --mode index --samples 50 --extensions .mp3
+```
+
 ## Documentation
 
 This README covers installation and quick-start examples. See
