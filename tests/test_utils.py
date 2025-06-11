@@ -153,6 +153,32 @@ def test_list_warc_keys_http(tmp_path, monkeypatch):
     assert keys == ["crawl-data/a.warc.gz"]
 
 
+def test_list_warc_keys_http_prefixed_entries(tmp_path, monkeypatch):
+    path_file = tmp_path / "warc.paths.gz"
+    content = b"crawl-data/a.warc.gz\ncrawl-data/b.warc.gz\n"
+    import gzip
+
+    with gzip.open(path_file, "wb") as fh:
+        fh.write(content)
+
+    class Resp:
+        def __init__(self, data):
+            self.content = data
+            self.status_code = 200
+
+        def raise_for_status(self):
+            pass
+
+    def fake_get(url, timeout=10):
+        assert url.endswith("warc.paths.gz")
+        return Resp(path_file.read_bytes())
+
+    monkeypatch.setattr("requests.get", fake_get)
+
+    keys = utils.list_warc_keys_http("crawl-data/CC-MAIN-XXXX-XX", 2)
+    assert keys == ["crawl-data/a.warc.gz", "crawl-data/b.warc.gz"]
+
+
 def test_list_warc_keys_http_latest_404(monkeypatch):
     class Resp:
         def __init__(self):

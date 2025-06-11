@@ -395,7 +395,9 @@ def list_warc_keys_http(prefix: str, max_keys: int) -> List[str]:
                 for line in gz:
                     key = line.decode("utf-8").strip()
                     if key.endswith(".warc.gz"):
-                        keys.append(f"crawl-data/{key}")
+                        if not key.startswith("crawl-data/"):
+                            key = f"crawl-data/{key}"
+                        keys.append(key)
                         if len(keys) >= max_keys:
                             break
             return keys
