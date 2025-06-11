@@ -1,8 +1,7 @@
 """Utility functions for the CC Codex crawler."""
 
-from typing import Dict, List, Set
-
 import os
+from typing import Dict, List, Set
 
 # Timeout in seconds for all network requests performed by this module. The
 # value can be overridden by setting the ``REQUEST_TIMEOUT`` environment
@@ -369,8 +368,10 @@ def list_warc_keys_http(prefix: str, max_keys: int) -> List[str]:
 
     base_url = "https://data.commoncrawl.org"
     norm = prefix.strip("/")
+    appended_latest = False
     if "CC-MAIN" not in norm:
         norm = f"{norm}/CC-MAIN-LATEST"
+        appended_latest = True
     url = f"{base_url}/{norm}/warc.paths.gz"
 
     attempt = 0
@@ -379,6 +380,11 @@ def list_warc_keys_http(prefix: str, max_keys: int) -> List[str]:
     while attempt < 3:
         try:
             resp = requests.get(url, timeout=10)
+            if resp.status_code == 404 and appended_latest:
+                raise RuntimeError(
+                    "CC-MAIN-LATEST not found. Set CRAWL_PREFIX to a specific crawl, "
+                    "e.g., 'crawl-data/CC-MAIN-2024-22'."
+                )
             resp.raise_for_status()
 
             keys: List[str] = []

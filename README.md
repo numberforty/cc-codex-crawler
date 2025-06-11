@@ -24,8 +24,9 @@ crawler.py --> utils.py --> OUTPUT_DIR
    ```bash
    python crawler.py --warcs 5 --samples 100
    ```
-4. Or run in HTTP mode without AWS credentials. You can set
-   `CRAWL_PREFIX` to target a specific crawl:
+4. Or run in HTTP mode without AWS credentials. **Set** `CRAWL_PREFIX` to a
+   specific crawl (for example `crawl-data/CC-MAIN-2024-22`); otherwise the
+   crawler attempts `CC-MAIN-LATEST`, which may not exist:
    ```bash
    CRAWL_PREFIX=crawl-data/CC-MAIN-2024-22 python crawler.py --mode http --warcs 5 --samples 100
    ```
@@ -48,11 +49,8 @@ crawler.py --> utils.py --> OUTPUT_DIR
   ```bash
   python crawler.py --warcs 20
   ```
-* Run without AWS credentials:
-  ```bash
-  python crawler.py --mode http --warcs 20
-  ```
-* Specify a different crawl in HTTP mode:
+* Run without AWS credentials (HTTP mode). Always set `CRAWL_PREFIX` to a
+  specific crawl:
   ```bash
   CRAWL_PREFIX=crawl-data/CC-MAIN-2024-22 python crawler.py --mode http --warcs 20
   ```

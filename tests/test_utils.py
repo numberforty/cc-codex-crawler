@@ -153,6 +153,24 @@ def test_list_warc_keys_http(tmp_path, monkeypatch):
     assert keys == ["crawl-data/a.warc.gz"]
 
 
+def test_list_warc_keys_http_latest_404(monkeypatch):
+    class Resp:
+        def __init__(self):
+            self.status_code = 404
+            self.content = b""
+
+        def raise_for_status(self):
+            raise requests.HTTPError(response=self)
+
+    def fake_get(url, timeout=10):
+        return Resp()
+
+    monkeypatch.setattr("requests.get", fake_get)
+
+    with pytest.raises(RuntimeError):
+        utils.list_warc_keys_http("crawl-data", 1)
+
+
 def test_stream_and_extract_http(tmp_path, monkeypatch):
     warc_path = tmp_path / "sample.warc.gz"
     _create_warc(warc_path)
