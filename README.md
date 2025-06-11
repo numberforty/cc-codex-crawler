@@ -1,5 +1,7 @@
 # CC Codex Crawler
+
 Programmer: Hasan Alqahtani
+
 CC Codex Crawler downloads files from the Common Crawl dataset and prepares them
 for further analysis. It provides a command line utility that streams WARC files
 and saves matching records to disk.
