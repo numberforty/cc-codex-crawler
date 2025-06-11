@@ -68,7 +68,11 @@ Typical log output looks like:
 2025-06-11 00:00:10,000 - INFO - Saved output/track_001.mp3 (.mp3)
 ```
 
-See [docs/USAGE.md](docs/USAGE.md) for more details and additional examples.
+## Documentation
+
+This README covers installation and quick-start examples. See
+[docs/USAGE.md](docs/USAGE.md) for extended usage instructions and additional
+examples.
 
 ## Contributing
 
