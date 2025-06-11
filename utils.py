@@ -2,6 +2,13 @@
 
 from typing import Dict, List, Set
 
+import os
+
+# Timeout in seconds for all network requests performed by this module. The
+# value can be overridden by setting the ``REQUEST_TIMEOUT`` environment
+# variable.
+REQUEST_TIMEOUT = float(os.environ.get("REQUEST_TIMEOUT", 30))
+
 
 def extension_from_url(url: str) -> str:
     """Return the file extension from ``url`` if present.
@@ -241,7 +248,9 @@ def stream_and_extract(
             )
 
             headers = {"User-Agent": user_agent}
-            with requests.get(url, stream=True, headers=headers) as resp:
+            with requests.get(
+                url, stream=True, headers=headers, timeout=REQUEST_TIMEOUT
+            ) as resp:
                 resp.raise_for_status()
 
                 with gzip.GzipFile(fileobj=resp.raw) as gz:
@@ -414,7 +423,9 @@ def stream_and_extract_http(
     while attempt < 3:
         try:
             headers = {"User-Agent": user_agent}
-            with requests.get(url, stream=True, headers=headers) as resp:
+            with requests.get(
+                url, stream=True, headers=headers, timeout=REQUEST_TIMEOUT
+            ) as resp:
                 resp.raise_for_status()
                 with gzip.GzipFile(fileobj=resp.raw) as gz:
                     for record in ArchiveIterator(gz):

@@ -98,8 +98,9 @@ def test_stream_and_extract(tmp_path, monkeypatch):
         def __exit__(self, exc_type, exc, tb):
             self.raw.close()
 
-    def fake_get(url, stream=True, headers=None):
+    def fake_get(url, stream=True, headers=None, timeout=None):
         assert url == "http://example.com/presigned"
+        assert timeout == utils.REQUEST_TIMEOUT
         return DummyResp(warc_path)
 
     monkeypatch.setattr("requests.get", fake_get)
@@ -172,9 +173,10 @@ def test_stream_and_extract_http(tmp_path, monkeypatch):
 
     calls = []
 
-    def fake_get(url, stream=True, headers=None):
+    def fake_get(url, stream=True, headers=None, timeout=None):
         calls.append(1)
         assert url == "https://data.commoncrawl.org/crawl-data/dir/sample.warc.gz"
+        assert timeout == utils.REQUEST_TIMEOUT
         if len(calls) == 1:
             raise requests.RequestException("fail")
         return DummyResp(warc_path)
