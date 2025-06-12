@@ -44,3 +44,6 @@ individual records without streaming full WARC files:
 $env:CRAWL_PREFIX = "CC-MAIN-2024-22"
 python crawler.py --mode index --samples 50 --extensions .mp3
 ```
+
+Passing an empty string to `--extensions` disables the file extension check and
+saves any `audio/*` response.

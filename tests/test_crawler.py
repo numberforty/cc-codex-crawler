@@ -34,7 +34,7 @@ def _process_bytes(data: bytes, url: str, ext: str, output_dir: str) -> bool:
         if (
             rec.rec_type == "response"
             and content_type.startswith("audio/")
-            and url.endswith(ext)
+            and (not ext or url.endswith(ext))
         ):
             content = rec.content_stream().read()
             crawler.save_file(content, url, output_dir)
@@ -63,4 +63,28 @@ def test_index_mode_media_type(monkeypatch, tmp_path):
     assert len(saved) == 1
 
     assert not _process_bytes(text_warc.read_bytes(), url, ".mp3", str(tmp_path))
+    assert len(saved) == 1
+
+
+def test_index_mode_empty_extension(monkeypatch, tmp_path):
+    audio_warc = tmp_path / "audio.warc.gz"
+    text_warc = tmp_path / "text.warc.gz"
+    url = "http://example.com/sample.mp3"
+    _create_warc(audio_warc, "audio/mpeg", url)
+    _create_warc(text_warc, "text/plain", url)
+
+    saved = []
+
+    def fake_save(data: bytes, u: str, out: str) -> str:
+        path = utils.save_file(data, u, out)
+        saved.append(path)
+        return path
+
+    monkeypatch.setattr(crawler, "save_file", fake_save)
+    monkeypatch.setattr(crawler, "OUTPUT_DIR", str(tmp_path))
+
+    assert _process_bytes(audio_warc.read_bytes(), url, "", str(tmp_path))
+    assert len(saved) == 1
+
+    assert not _process_bytes(text_warc.read_bytes(), url, "", str(tmp_path))
     assert len(saved) == 1
