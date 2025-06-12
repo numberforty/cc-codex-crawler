@@ -38,13 +38,20 @@ The downloaded files are written to the directory specified by `OUTPUT_DIR`
 ## CDX index mode
 
 When you only need a small sample you can use the CDX index to download
-individual records without streaming full WARC files:
+individual records without streaming full WARC files. The crawler automatically
+uses the latest crawl ID from `https://index.commoncrawl.org/collinfo.json` if
+`CRAWL_PREFIX` is not set.
 
 ```powershell
-$env:CRAWL_PREFIX = "CC-MAIN-2024-22"
-python crawler.py --mode index --samples 50
+curl -s "https://index.commoncrawl.org/collinfo.json" | jq '.[0].id'
+$env:CRAWL_PREFIX = "CC-MAIN-2025-21"
+python crawler.py --mode index --index-url "example.com" --match-type domain --samples 50
 ```
 
-By default the crawler saves every `audio/*` response. Use the
-`--extensions` option to restrict downloads to matching file names, for
-example `--extensions .mp3`.
+Use `--index-url` to send an arbitrary pattern to the CDX index. Combine it with
+`--match-type` when needed. For simple extension filtering you can instead use
+the `--extensions` option:
+
+```powershell
+python crawler.py --mode index --extensions .mp3 --samples 50
+```

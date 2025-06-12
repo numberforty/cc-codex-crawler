@@ -7,6 +7,7 @@ import requests
 from warcio.archiveiterator import ArchiveIterator
 
 from utils import (
+    latest_crawl_id,
     list_warc_keys,
     list_warc_keys_http,
     load_state,
@@ -100,6 +101,17 @@ def main() -> None:
             "Use empty string (default) to match all audio"
         ),
     )
+    parser.add_argument(
+        "--index-url",
+        dest="index_url",
+        help="URL pattern for CDX index queries (e.g., example.com or *.mp3)",
+    )
+    parser.add_argument(
+        "--match-type",
+        dest="match_type",
+        choices=["domain", "prefix", "host", "extension"],
+        help="CDX index matchType used with --index-url",
+    )
 
     args = parser.parse_args()
 
@@ -119,16 +131,31 @@ def main() -> None:
     logger.addHandler(file_handler)
 
     if args.mode == "index":
-        crawl = os.getenv("CRAWL_PREFIX", DEFAULT_CRAWL)
-        ext = args.extensions or DEFAULT_EXT
-        # When ext is empty, any audio response is eligible for saving
-        idx_url = f"http://index.commoncrawl.org/{crawl}-index?url=*{ext}&output=json"
+        crawl = os.getenv("CRAWL_PREFIX") or latest_crawl_id() or DEFAULT_CRAWL
+        if args.index_url:
+            params = {
+                "url": args.index_url,
+                "output": "json",
+                "limit": str(args.samples),
+            }
+            if args.match_type:
+                params["matchType"] = args.match_type
+        else:
+            ext = args.extensions or DEFAULT_EXT
+            params = {
+                "url": f"*{ext}" if ext else "*",
+                "output": "json",
+                "limit": str(args.samples),
+            }
+            if ext:
+                params["matchType"] = "extension"
+        idx_url = f"https://index.commoncrawl.org/{crawl}-index"
 
         attempt = 0
         backoff = 1.0
         while attempt < 3:
             try:
-                resp = requests.get(idx_url, timeout=10)
+                resp = requests.get(idx_url, params=params, timeout=10)
                 resp.raise_for_status()
                 break
             except (

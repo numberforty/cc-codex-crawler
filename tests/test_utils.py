@@ -238,3 +238,28 @@ def test_stream_and_extract_http(tmp_path, monkeypatch):
     assert len(records) == 1
     assert records[0][0] == "http://example.com/test.py"
     assert records[0][1] == b"print(1)"
+
+
+def test_latest_crawl_id_success(monkeypatch):
+    class Resp:
+        def __init__(self):
+            self.status_code = 200
+
+        def raise_for_status(self):
+            pass
+
+        def json(self):
+            return [{"id": "CC-MAIN-2025-21"}]
+
+    monkeypatch.setattr("requests.get", lambda url, timeout=10: Resp())
+
+    assert utils.latest_crawl_id() == "CC-MAIN-2025-21"
+
+
+def test_latest_crawl_id_failure(monkeypatch):
+    def raise_exc(url, timeout=10):
+        raise requests.RequestException
+
+    monkeypatch.setattr("requests.get", raise_exc)
+
+    assert utils.latest_crawl_id() is None

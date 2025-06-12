@@ -456,3 +456,18 @@ def stream_and_extract_http(
                 raise
             time.sleep(backoff)
             backoff *= 2
+
+
+def latest_crawl_id() -> str | None:
+    """Return the most recent crawl ID from Common Crawl."""
+    import requests
+
+    try:
+        resp = requests.get("https://index.commoncrawl.org/collinfo.json", timeout=10)
+        resp.raise_for_status()
+        data = resp.json()
+        if isinstance(data, list) and data and "id" in data[0]:
+            return str(data[0]["id"])
+    except Exception:
+        return None
+    return None

@@ -74,16 +74,35 @@ Only responses with an `audio/*` content type are written to disk.
 
 ## CDX index mode
 
-Instead of streaming entire WARC files you can fetch specific records using
-the Common Crawl index:
+Instead of streaming entire WARC files you can fetch specific records using the
+Common Crawl URL index. If `CRAWL_PREFIX` is not set the crawler retrieves the
+latest crawl ID from `https://index.commoncrawl.org/collinfo.json`.
 
 ```bash
-CRAWL_PREFIX=CC-MAIN-2024-22 \
-python crawler.py --mode index --samples 50
+curl -s "https://index.commoncrawl.org/collinfo.json" | jq '.[0].id'
 ```
 
-All `audio/*` responses are saved by default. Use `--extensions` to
-filter by file name, for example `--extensions .mp3`.
+Once you know the crawl ID you can query it directly. Results are returned as
+newline separated JSON objects. A short example:
+
+```bash
+curl "https://index.commoncrawl.org/CC-MAIN-2025-21-index?url=example.com&matchType=domain&output=json&limit=2" | head -n 2
+{"urlkey": "com,example)/", "timestamp": "20250512012055", "url": "http://example.com/", ...}
+{"urlkey": "com,example)/index.html", "timestamp": "20250512012603", "url": "http://example.com/index.html", ...}
+```
+
+Typical usage with the crawler:
+
+```bash
+CRAWL_PREFIX=CC-MAIN-2025-21 \
+python crawler.py --mode index --index-url "example.com" --match-type domain --samples 50
+```
+
+Alternatively, use `--extensions` for simple extension filtering:
+
+```bash
+python crawler.py --mode index --extensions .mp3 --samples 50
+```
 
 ## Documentation
 
