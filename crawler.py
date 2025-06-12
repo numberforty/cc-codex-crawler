@@ -92,7 +92,10 @@ def main() -> None:
     parser.add_argument(
         "--extensions",
         dest="extensions",
-        help="Extension for index mode (e.g., .mp3)",
+        help=(
+            "Extension for index mode (e.g., .mp3). "
+            "Use empty string to match all audio"
+        ),
     )
 
     args = parser.parse_args()
@@ -115,6 +118,7 @@ def main() -> None:
     if args.mode == "index":
         crawl = os.getenv("CRAWL_PREFIX", DEFAULT_CRAWL)
         ext = args.extensions or DEFAULT_EXT
+        # When ext is empty, any audio response is eligible for saving
         idx_url = f"http://index.commoncrawl.org/{crawl}-index?url=*{ext}&output=json"
 
         attempt = 0
@@ -174,7 +178,7 @@ def main() -> None:
                 if (
                     rec.rec_type == "response"
                     and content_type.startswith("audio/")
-                    and url.endswith(ext)
+                    and (not ext or url.endswith(ext))
                 ):
                     data = rec.content_stream().read()
                     try:
