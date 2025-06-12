@@ -170,7 +170,12 @@ def main() -> None:
 
             stream = io.BytesIO(r.content)
             for rec in ArchiveIterator(stream, arc2warc=True):
-                if rec.rec_type == "response" and url.endswith(ext):
+                content_type = rec.http_headers.get_header("Content-Type", "")
+                if (
+                    rec.rec_type == "response"
+                    and content_type.startswith("audio/")
+                    and url.endswith(ext)
+                ):
                     data = rec.content_stream().read()
                     try:
                         save_file(data, url, OUTPUT_DIR)

@@ -70,6 +70,8 @@ Typical log output looks like:
 2025-06-11 00:00:10,000 - INFO - Saved output/track_001.mp3 (.mp3)
 ```
 
+Only responses with an `audio/*` content type are written to disk.
+
 ## CDX index mode
 
 Instead of streaming entire WARC files you can fetch specific records using
