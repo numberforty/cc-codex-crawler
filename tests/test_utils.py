@@ -15,8 +15,6 @@ from warcio.warcwriter import WARCWriter  # noqa: E402
 
 import utils  # noqa: E402
 
-sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
-
 # Helper to create a small WARC file for testing
 
 
