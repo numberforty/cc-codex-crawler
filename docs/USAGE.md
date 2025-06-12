@@ -30,15 +30,18 @@ Typical output lines look like this:
 2025-06-11 00:00:10,000 - INFO - Saved output/track_001.mp3 (.mp3)
 ```
 
+Files are only written if the response's `Content-Type` header starts with `audio/`.
+
 The downloaded files are written to the directory specified by `OUTPUT_DIR`
 (`./output` by default).
 
 ## CDX index mode
 
 When you only need a small sample you can use the CDX index to download
-individual records without streaming full WARC files:
+individual records without streaming full WARC files. Omitting the
+extension allows fetching any audio type:
 
 ```powershell
 $env:CRAWL_PREFIX = "CC-MAIN-2024-22"
-python crawler.py --mode index --samples 50 --extensions .mp3
+python crawler.py --mode index --samples 50 --extensions ""
 ```

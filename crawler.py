@@ -114,8 +114,11 @@ def main() -> None:
 
     if args.mode == "index":
         crawl = os.getenv("CRAWL_PREFIX", DEFAULT_CRAWL)
-        ext = args.extensions or DEFAULT_EXT
-        idx_url = f"http://index.commoncrawl.org/{crawl}-index?url=*{ext}&output=json"
+        ext = args.extensions if args.extensions is not None else DEFAULT_EXT
+        query = f"*{ext}" if ext else "*"
+        idx_url = (
+            f"http://index.commoncrawl.org/{crawl}-index?url={query}&output=json"
+        )
 
         attempt = 0
         backoff = 1.0
@@ -170,7 +173,10 @@ def main() -> None:
 
             stream = io.BytesIO(r.content)
             for rec in ArchiveIterator(stream, arc2warc=True):
-                if rec.rec_type == "response" and url.endswith(ext):
+                content_type = rec.http_headers.get_header("Content-Type", "")
+                if rec.rec_type == "response" and content_type.startswith("audio/"):
+                    if ext and not url.endswith(ext):
+                        continue
                     data = rec.content_stream().read()
                     try:
                         save_file(data, url, OUTPUT_DIR)
