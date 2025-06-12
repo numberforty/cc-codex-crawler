@@ -30,7 +30,8 @@ Typical output lines look like this:
 2025-06-11 00:00:10,000 - INFO - Saved output/track_001.mp3 (.mp3)
 ```
 
-Files are only written if the response's `Content-Type` header starts with `audio/`.
+Files are only written if the response's `Content-Type` header starts with `audio/`,
+and the URL must match the requested extension if one is provided.
 
 The downloaded files are written to the directory specified by `OUTPUT_DIR`
 (`./output` by default).
