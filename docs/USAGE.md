@@ -42,8 +42,9 @@ individual records without streaming full WARC files:
 
 ```powershell
 $env:CRAWL_PREFIX = "CC-MAIN-2024-22"
-python crawler.py --mode index --samples 50 --extensions .mp3
+python crawler.py --mode index --samples 50
 ```
 
-Passing an empty string to `--extensions` disables the file extension check and
-saves any `audio/*` response.
+By default the crawler saves every `audio/*` response. Use the
+`--extensions` option to restrict downloads to matching file names, for
+example `--extensions .mp3`.

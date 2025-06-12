@@ -20,7 +20,10 @@ from utils import (
 S3_BUCKET = os.getenv("S3_BUCKET", "commoncrawl")
 CRAWL_PREFIX = os.getenv("CRAWL_PREFIX", "crawl-data")
 DEFAULT_CRAWL = "CC-MAIN-2024-22"
-DEFAULT_EXT = ".mp3"
+# When using the CDX index the crawler previously filtered by the `.mp3`
+# extension. The default is now an empty string so any `audio/*` response is
+# saved irrespective of the URL.
+DEFAULT_EXT = ""
 
 # Parse target extensions into a Python set
 _default_exts = ".py,.js,.java,.cpp,.go"
@@ -94,7 +97,7 @@ def main() -> None:
         dest="extensions",
         help=(
             "Extension for index mode (e.g., .mp3). "
-            "Use empty string to match all audio"
+            "Use empty string (default) to match all audio"
         ),
     )
 

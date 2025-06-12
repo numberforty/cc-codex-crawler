@@ -79,11 +79,11 @@ the Common Crawl index:
 
 ```bash
 CRAWL_PREFIX=CC-MAIN-2024-22 \
-python crawler.py --mode index --samples 50 --extensions .mp3
+python crawler.py --mode index --samples 50
 ```
 
-Omit the `--extensions` option or pass an empty string to save any
-`audio/*` response regardless of the file name.
+All `audio/*` responses are saved by default. Use `--extensions` to
+filter by file name, for example `--extensions .mp3`.
 
 ## Documentation
 
