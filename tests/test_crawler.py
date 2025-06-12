@@ -5,10 +5,11 @@ import sys
 from pathlib import Path
 
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
-import crawler  # noqa: E402
-import utils  # noqa: E402
 from warcio.statusandheaders import StatusAndHeaders  # noqa: E402
 from warcio.warcwriter import WARCWriter  # noqa: E402
+
+import crawler  # noqa: E402
+import utils  # noqa: E402
 
 
 def _create_warc(path: Path, content_type: str, url: str) -> None:
@@ -30,7 +31,11 @@ def _process_bytes(data: bytes, url: str, ext: str, output_dir: str) -> bool:
     stream = io.BytesIO(data)
     for rec in crawler.ArchiveIterator(stream, arc2warc=True):
         content_type = rec.http_headers.get_header("Content-Type", "")
-        if rec.rec_type == "response" and content_type.startswith("audio/") and url.endswith(ext):
+        if (
+            rec.rec_type == "response"
+            and content_type.startswith("audio/")
+            and url.endswith(ext)
+        ):
             content = rec.content_stream().read()
             crawler.save_file(content, url, output_dir)
             return True
