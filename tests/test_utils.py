@@ -2,16 +2,23 @@ import gzip
 import io
 from pathlib import Path
 
+import pytest
+
 from warcio.statusandheaders import StatusAndHeaders
 from warcio.warcwriter import WARCWriter
+import requests
 
 import utils
 
 
-def _create_warc(path: Path, content_type: str = "text/plain") -> None:
+def _create_warc(
+    path: Path, content_type: str = "text/plain", gzip_compress: bool = True
+) -> None:
+    """Create a minimal WARC file for testing."""
+
     with path.open("wb") as fh:
-        gz = gzip.GzipFile(fileobj=fh, mode="wb")
-        writer = WARCWriter(gz, gzip=False)
+        target = gzip.GzipFile(fileobj=fh, mode="wb") if gzip_compress else fh
+        writer = WARCWriter(target, gzip=False)
         headers = StatusAndHeaders("200 OK", [("Content-Type", content_type)])
         record = writer.create_warc_record(
             "http://example.com/test.mp3",
@@ -20,7 +27,8 @@ def _create_warc(path: Path, content_type: str = "text/plain") -> None:
             http_headers=headers,
         )
         writer.write_record(record)
-        gz.close()
+        if gzip_compress:
+            target.close()
 
 
 def test_extension_from_url_present():
@@ -57,3 +65,65 @@ def test_stream_and_extract_local(tmp_path):
     assert len(records) == 1
     assert records[0][0] == "http://example.com/test.mp3"
     assert records[0][1] == b"audio"
+
+
+def test_stream_and_extract_local_plain(tmp_path):
+    warc = tmp_path / "sample.warc"
+    _create_warc(warc, "audio/mpeg", gzip_compress=False)
+    records = list(utils.stream_and_extract_local(str(warc), [".mp3"]))
+    assert len(records) == 1
+    assert records[0][0] == "http://example.com/test.mp3"
+    assert records[0][1] == b"audio"
+
+
+def test_list_warc_keys_http(monkeypatch):
+    data = (
+        b"CC-MAIN-2025-21/segment/1.warc.gz\n"
+        b"not-a-warc\n"
+        b"crawl-data/CC-MAIN-2025-21/segment/2.warc.gz\n"
+    )
+    gz = gzip.compress(data)
+
+    called = {}
+
+    class FakeResp:
+        def __init__(self, content, status_code=200):
+            self.content = content
+            self.status_code = status_code
+
+        def raise_for_status(self):
+            if self.status_code >= 400:
+                raise requests.HTTPError()
+
+    def fake_get(url, timeout):
+        called["url"] = url
+        return FakeResp(gz)
+
+    monkeypatch.setattr(requests, "get", fake_get)
+
+    keys = utils.list_warc_keys_http("CC-MAIN-2025-21", 2)
+
+    assert called["url"].endswith("crawl-data/CC-MAIN-2025-21/warc.paths.gz")
+    assert keys == [
+        "crawl-data/CC-MAIN-2025-21/segment/1.warc.gz",
+        "crawl-data/CC-MAIN-2025-21/segment/2.warc.gz",
+    ]
+
+
+def test_list_warc_keys_http_404(monkeypatch):
+    class FakeResp:
+        def __init__(self, status_code):
+            self.content = b""
+            self.status_code = status_code
+
+        def raise_for_status(self):
+            if self.status_code >= 400:
+                raise requests.HTTPError()
+
+    def fake_get(url, timeout):
+        return FakeResp(404)
+
+    monkeypatch.setattr(requests, "get", fake_get)
+
+    with pytest.raises(RuntimeError):
+        utils.list_warc_keys_http("CC-MAIN-2025-21", 1)
