@@ -33,8 +33,6 @@ The most common options are listed below:
 
 | Variable | Description | Default |
 |----------|-------------|---------|
-| Variable | Description | Default |
-|----------|-------------|---------|
 | `LOCAL_WARC_DIR` | Directory containing downloaded WARC files | `E:\\` |
 | `TARGET_EXTENSIONS` | Comma separated list of extensions to save | `.py,.js,.java,.cpp,.go` |
 | `OUTPUT_DIR` | Directory for extracted files | `./output` |
