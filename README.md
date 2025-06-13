@@ -66,6 +66,19 @@ Typical log output looks like:
 
 Only responses with an `audio/*` content type are written to disk.
 
+### Downloading missing WARC files
+
+Provide a crawl prefix with `--prefix` to automatically download WARC files
+from the Common Crawl bucket when they are not present locally. Files are saved
+under subdirectories named after each WARC file:
+
+```bash
+python crawler.py \
+  --warc-dir /data/warc \
+  --prefix CC-MAIN-2025-21 \
+  --warcs 20 --samples 100
+```
+
 ## Documentation
 
 This README covers installation and quick-start examples. See

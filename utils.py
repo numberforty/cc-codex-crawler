@@ -464,7 +464,7 @@ def list_local_warc_files(directory: str, max_files: int) -> List[str]:
     paths: List[str] = []
     for root, _, files in os.walk(directory):
         for name in files:
-            if name.endswith(('.warc', '.warc.gz')):
+            if name.endswith((".warc", ".warc.gz")):
                 paths.append(os.path.join(root, name))
                 if len(paths) >= max_files:
                     return paths
@@ -480,14 +480,62 @@ def stream_and_extract_local(path: str, target_exts) -> None:
 
     from warcio.archiveiterator import ArchiveIterator
 
-    open_func = gzip.open if path.endswith('.gz') else open
-    with open_func(path, 'rb') as fh:
+    open_func = gzip.open if path.endswith(".gz") else open
+    with open_func(path, "rb") as fh:
         for record in ArchiveIterator(fh):
-            if record.rec_type != 'response':
+            if record.rec_type != "response":
                 continue
-            uri = record.rec_headers.get_header('WARC-Target-URI')
+            uri = record.rec_headers.get_header("WARC-Target-URI")
             if not uri:
                 continue
             p = urlparse(uri).path
             if any(p.endswith(ext) for ext in target_exts):
                 yield uri, record.content_stream().read()
+
+
+def download_warc_http(
+    key: str, dest: str, rate_limit: float = 1.0, user_agent: str = "CC-Codex-Crawler"
+) -> str:
+    """Download a WARC file via HTTPS and save it to ``dest``.
+
+    Parameters
+    ----------
+    key : str
+        WARC key relative to the Common Crawl bucket.
+    dest : str
+        Local file path to write the downloaded data.
+    rate_limit : float
+        Number of seconds to sleep after the download.
+    user_agent : str
+        User-Agent header for the HTTP request.
+    """
+
+    import time
+
+    import requests
+
+    url = f"https://data.commoncrawl.org/{key}"
+    attempt = 0
+    backoff = 1.0
+
+    while attempt < 3:
+        try:
+            headers = {"User-Agent": user_agent}
+            with requests.get(
+                url, stream=True, headers=headers, timeout=REQUEST_TIMEOUT
+            ) as resp:
+                resp.raise_for_status()
+                os.makedirs(os.path.dirname(dest), exist_ok=True)
+                with open(dest, "wb") as fh:
+                    for chunk in resp.iter_content(chunk_size=8192):
+                        fh.write(chunk)
+            time.sleep(rate_limit)
+            return dest
+        except requests.RequestException:
+            attempt += 1
+            if attempt >= 3:
+                raise
+            time.sleep(backoff)
+            backoff *= 2
+
+    return dest

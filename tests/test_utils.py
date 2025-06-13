@@ -3,10 +3,9 @@ import io
 from pathlib import Path
 
 import pytest
-
+import requests
 from warcio.statusandheaders import StatusAndHeaders
 from warcio.warcwriter import WARCWriter
-import requests
 
 import utils
 
@@ -127,3 +126,35 @@ def test_list_warc_keys_http_404(monkeypatch):
 
     with pytest.raises(RuntimeError):
         utils.list_warc_keys_http("CC-MAIN-2025-21", 1)
+
+
+def test_download_warc_http(monkeypatch, tmp_path):
+    dest = tmp_path / "file.warc.gz"
+    called = {}
+
+    class FakeResp:
+        def __init__(self):
+            self.status_code = 200
+
+        def iter_content(self, chunk_size=8192):
+            yield b"data"
+
+        def raise_for_status(self):
+            pass
+
+        def __enter__(self):
+            return self
+
+        def __exit__(self, exc_type, exc, tb):
+            pass
+
+    def fake_get(url, stream=True, headers=None, timeout=None):
+        called["url"] = url
+        return FakeResp()
+
+    monkeypatch.setattr(requests, "get", fake_get)
+
+    utils.download_warc_http("crawl-data/test/file.warc.gz", str(dest), rate_limit=0)
+
+    assert dest.read_bytes() == b"data"
+    assert called["url"].endswith("crawl-data/test/file.warc.gz")
