@@ -8,19 +8,18 @@ different file types.
 
 The crawler targets source code files by default. To download MP3 files instead,
 set the `TARGET_EXTENSIONS` environment variable and specify the desired number
-of samples. Below are examples for both PowerShell and the Windows command
-prompt. Each retrieves up to 50 MP3 files using direct HTTPS access.
+of samples. Place your downloaded WARC files in a directory and point the
+crawler at it. The examples below retrieve up to 50 MP3 files from local
+archives.
 
 ```powershell
-$env:CRAWL_PREFIX = "crawl-data/CC-MAIN-2024-22"
 $env:TARGET_EXTENSIONS = ".mp3"
-python crawler.py --mode http --warcs 20 --samples 50
+python crawler.py --warc-dir E:\WARC-CC-MAIN-2024-30 --warcs 20 --samples 50
 ```
 
 ```batch
-set CRAWL_PREFIX=crawl-data/CC-MAIN-2024-22
 set TARGET_EXTENSIONS=.mp3
-python crawler.py --mode http --warcs 20 --samples 50
+python crawler.py --warc-dir E:\WARC-CC-MAIN-2024-30 --warcs 20 --samples 50
 ```
 
 Typical output lines look like this:
@@ -34,17 +33,3 @@ Files are only written if the response's `Content-Type` header starts with `audi
 
 The downloaded files are written to the directory specified by `OUTPUT_DIR`
 (`./output` by default).
-
-## CDX index mode
-
-When you only need a small sample you can use the CDX index to download
-individual records without streaming full WARC files:
-
-```powershell
-$env:CRAWL_PREFIX = "CC-MAIN-2024-22"
-python crawler.py --mode index --samples 50
-```
-
-By default the crawler saves every `audio/*` response. Use the
-`--extensions` option to restrict downloads to matching file names, for
-example `--extensions .mp3`.
