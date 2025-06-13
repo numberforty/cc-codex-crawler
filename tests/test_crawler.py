@@ -5,11 +5,11 @@ import sys
 from pathlib import Path
 
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
-from warcio.statusandheaders import StatusAndHeaders  # noqa: E402
-from warcio.warcwriter import WARCWriter  # noqa: E402
 
 import crawler  # noqa: E402
 import utils  # noqa: E402
+from warcio.statusandheaders import StatusAndHeaders  # noqa: E402
+from warcio.warcwriter import WARCWriter  # noqa: E402
 
 
 def _create_warc(path: Path, content_type: str, url: str) -> None:
@@ -27,27 +27,11 @@ def _create_warc(path: Path, content_type: str, url: str) -> None:
         gz.close()
 
 
-def _process_bytes(data: bytes, url: str, ext: str, output_dir: str) -> bool:
-    stream = io.BytesIO(data)
-    for rec in crawler.ArchiveIterator(stream, arc2warc=True):
-        content_type = rec.http_headers.get_header("Content-Type", "")
-        if (
-            rec.rec_type == "response"
-            and content_type.startswith("audio/")
-            and (not ext or url.endswith(ext))
-        ):
-            content = rec.content_stream().read()
-            crawler.save_file(content, url, output_dir)
-            return True
-    return False
-
-
-def test_index_mode_media_type(monkeypatch, tmp_path):
-    audio_warc = tmp_path / "audio.warc.gz"
-    text_warc = tmp_path / "text.warc.gz"
-    url = "http://example.com/sample.mp3"
-    _create_warc(audio_warc, "audio/mpeg", url)
-    _create_warc(text_warc, "text/plain", url)
+def test_main_local(monkeypatch, tmp_path):
+    warc_dir = tmp_path / "data"
+    warc_dir.mkdir()
+    warc = warc_dir / "audio.warc.gz"
+    _create_warc(warc, "audio/mpeg", "http://example.com/sample.mp3")
 
     saved = []
 
@@ -57,34 +41,23 @@ def test_index_mode_media_type(monkeypatch, tmp_path):
         return path
 
     monkeypatch.setattr(crawler, "save_file", fake_save)
-    monkeypatch.setattr(crawler, "OUTPUT_DIR", str(tmp_path))
+    monkeypatch.setattr(crawler, "STATE_FILE", str(tmp_path / "state.json"))
+    out_dir = tmp_path / "out"
+    out_dir.mkdir()
+    monkeypatch.setattr(crawler, "OUTPUT_DIR", str(out_dir))
+    monkeypatch.setattr(crawler, "TARGET_EXTENSIONS", {".mp3"})
 
-    assert _process_bytes(audio_warc.read_bytes(), url, ".mp3", str(tmp_path))
+    argv = [
+        "crawler.py",
+        "--warcs",
+        "1",
+        "--samples",
+        "1",
+        "--warc-dir",
+        str(warc_dir),
+    ]
+    monkeypatch.setattr(sys, "argv", argv)
+
+    crawler.main()
     assert len(saved) == 1
 
-    assert not _process_bytes(text_warc.read_bytes(), url, ".mp3", str(tmp_path))
-    assert len(saved) == 1
-
-
-def test_index_mode_empty_extension(monkeypatch, tmp_path):
-    audio_warc = tmp_path / "audio.warc.gz"
-    text_warc = tmp_path / "text.warc.gz"
-    url = "http://example.com/sample.mp3"
-    _create_warc(audio_warc, "audio/mpeg", url)
-    _create_warc(text_warc, "text/plain", url)
-
-    saved = []
-
-    def fake_save(data: bytes, u: str, out: str) -> str:
-        path = utils.save_file(data, u, out)
-        saved.append(path)
-        return path
-
-    monkeypatch.setattr(crawler, "save_file", fake_save)
-    monkeypatch.setattr(crawler, "OUTPUT_DIR", str(tmp_path))
-
-    assert _process_bytes(audio_warc.read_bytes(), url, "", str(tmp_path))
-    assert len(saved) == 1
-
-    assert not _process_bytes(text_warc.read_bytes(), url, "", str(tmp_path))
-    assert len(saved) == 1

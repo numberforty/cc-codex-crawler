@@ -2,9 +2,9 @@
 
 Programmer: Hasan Alqahtani
 
-CC Codex Crawler downloads files from the Common Crawl dataset and prepares them
-for further analysis. It provides a command line utility that streams WARC files
-and saves matching records to disk.
+CC Codex Crawler scans local Common Crawl WARC files and saves matching
+records to disk. Download your desired crawl segments manually and point the
+crawler at the directory containing the ``*.warc`` files.
 
 ```
 crawler.py --> utils.py --> OUTPUT_DIR
@@ -26,30 +26,23 @@ export OPENAI_API_KEY=<your key>
 
 ## Running the crawler
 
-The crawler can operate either with AWS credentials or via direct HTTPS
-requests. By default it searches for common source code extensions, but this can
-be customised via environment variables.
+The crawler operates on local files only. By default it searches for common
+source code extensions, but this can be customised via environment variables.
 
 The most common options are listed below:
 
 | Variable | Description | Default |
 |----------|-------------|---------|
-| `S3_BUCKET` | S3 bucket name | `commoncrawl` |
-| `CRAWL_PREFIX` | Crawl prefix when using `--mode http` | `crawl-data` |
+| Variable | Description | Default |
+|----------|-------------|---------|
+| `LOCAL_WARC_DIR` | Directory containing downloaded WARC files | `E:\\` |
 | `TARGET_EXTENSIONS` | Comma separated list of extensions to save | `.py,.js,.java,.cpp,.go` |
-| `OUTPUT_DIR` | Directory for downloaded files | `./output` |
+| `OUTPUT_DIR` | Directory for extracted files | `./output` |
 
-A simple crawl using AWS credentials:
-
-```bash
-python crawler.py --warcs 5 --samples 100
-```
-
-Using HTTPS mode without credentials (always specify a concrete crawl):
+A simple run processing five local WARC files:
 
 ```bash
-CRAWL_PREFIX=crawl-data/CC-MAIN-2024-22 \
-python crawler.py --mode http --warcs 5 --samples 100
+python crawler.py --warc-dir E:\\WARC-CC-MAIN-2024-30 --warcs 5 --samples 100
 ```
 
 ## Example: downloading MP3 files
@@ -58,9 +51,8 @@ To gather a small corpus of audio files, override the target extensions and
 request more WARC files. The following command fetches up to 50 MP3 samples:
 
 ```bash
-CRAWL_PREFIX=crawl-data/CC-MAIN-2024-22 \
 TARGET_EXTENSIONS=.mp3 \
-python crawler.py --mode http --warcs 20 --samples 50
+python crawler.py --warc-dir E:\\WARC-CC-MAIN-2024-30 --warcs 20 --samples 50
 ```
 
 Typical log output looks like:
@@ -71,19 +63,6 @@ Typical log output looks like:
 ```
 
 Only responses with an `audio/*` content type are written to disk.
-
-## CDX index mode
-
-Instead of streaming entire WARC files you can fetch specific records using
-the Common Crawl index:
-
-```bash
-CRAWL_PREFIX=CC-MAIN-2024-22 \
-python crawler.py --mode index --samples 50
-```
-
-All `audio/*` responses are saved by default. Use `--extensions` to
-filter by file name, for example `--extensions .mp3`.
 
 ## Documentation
 

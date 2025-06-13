@@ -456,3 +456,38 @@ def stream_and_extract_http(
                 raise
             time.sleep(backoff)
             backoff *= 2
+
+
+def list_local_warc_files(directory: str, max_files: int) -> List[str]:
+    """Return up to ``max_files`` WARC file paths found under ``directory``."""
+
+    paths: List[str] = []
+    for root, _, files in os.walk(directory):
+        for name in files:
+            if name.endswith(('.warc', '.warc.gz')):
+                paths.append(os.path.join(root, name))
+                if len(paths) >= max_files:
+                    return paths
+
+    return paths
+
+
+def stream_and_extract_local(path: str, target_exts) -> None:
+    """Yield matching records from a local WARC file."""
+
+    import gzip
+    from urllib.parse import urlparse
+
+    from warcio.archiveiterator import ArchiveIterator
+
+    open_func = gzip.open if path.endswith('.gz') else open
+    with open_func(path, 'rb') as fh:
+        for record in ArchiveIterator(fh):
+            if record.rec_type != 'response':
+                continue
+            uri = record.rec_headers.get_header('WARC-Target-URI')
+            if not uri:
+                continue
+            p = urlparse(uri).path
+            if any(p.endswith(ext) for ext in target_exts):
+                yield uri, record.content_stream().read()
