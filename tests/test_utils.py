@@ -77,7 +77,11 @@ def test_stream_and_extract_local_plain(tmp_path):
 
 
 def test_list_warc_keys_http(monkeypatch):
-    data = b"CC-MAIN-2025-21/segment/1.warc.gz\nnot-a-warc\ncrawl-data/CC-MAIN-2025-21/segment/2.warc.gz\n"
+    data = (
+        b"CC-MAIN-2025-21/segment/1.warc.gz\n"
+        b"not-a-warc\n"
+        b"crawl-data/CC-MAIN-2025-21/segment/2.warc.gz\n"
+    )
     gz = gzip.compress(data)
 
     called = {}
