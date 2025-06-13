@@ -1,6 +1,5 @@
 import gzip
 import io
-import os
 from pathlib import Path
 
 import utils
