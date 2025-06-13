@@ -1,8 +1,6 @@
+import logging
 import os
 from collections import defaultdict
-from concurrent.futures import ThreadPoolExecutor, as_completed
-import logging
-import threading
 
 from utils import (
     list_local_warc_files,
@@ -86,10 +84,8 @@ def main() -> None:
         return
 
     saved_counts: defaultdict[str, int] = defaultdict(int)
-    lock = threading.Lock()
-    state_lock = threading.Lock()
 
-    def process_warc(path: str) -> None:
+    for path in warc_files:
         logger.info("Processing %s", path)
         try:
             iterator = stream_and_extract_local(path, TARGET_EXTENSIONS)
@@ -97,28 +93,23 @@ def main() -> None:
                 ext = next((e for e in TARGET_EXTENSIONS if url.endswith(e)), None)
                 if not ext:
                     continue
-                with lock:
-                    if saved_counts[ext] >= args.samples:
-                        continue
+                if saved_counts[ext] >= args.samples:
+                    continue
                 try:
                     target_path = save_file(data, url, OUTPUT_DIR)
-                    with lock:
-                        saved_counts[ext] += 1
+                    saved_counts[ext] += 1
                     logger.info("Saved %s (%s)", target_path, ext)
                 except Exception as exc:
                     logger.warning("Failed to save %s: %s", url, exc)
         except Exception as exc:
             logger.warning("Error processing %s: %s", path, exc)
         finally:
-            with state_lock:
-                completed.add(path)
-                save_state(STATE_FILE, completed)
+            completed.add(path)
+            save_state(STATE_FILE, completed)
 
-    max_workers = min(args.workers, len(warc_files)) or 1
-    with ThreadPoolExecutor(max_workers=max_workers) as executor:
-        futures = [executor.submit(process_warc, p) for p in warc_files]
-        for fut in as_completed(futures):
-            fut.result()
+        if all(saved_counts[e] >= args.samples for e in TARGET_EXTENSIONS):
+            logger.info("Collected required samples, stopping")
+            break
 
 
 if __name__ == "__main__":
