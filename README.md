@@ -55,6 +55,10 @@ TARGET_EXTENSIONS=.mp3 \
 python crawler.py --warc-dir E:\\WARC-CC-MAIN-2024-30 --warcs 20 --samples 50
 ```
 
+The crawler processes one WARC file at a time and moves on to the next only
+when the requested number of samples hasn't yet been collected. It stops early
+once enough matches are found or no further WARC files remain.
+
 Typical log output looks like:
 
 ```
