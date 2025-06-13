@@ -61,3 +61,6 @@ def test_main_local(monkeypatch, tmp_path):
 
     crawler.main()
     assert len(saved) == 1
+    subdir = out_dir / "audio"
+    assert subdir.is_dir()
+    assert saved[0].startswith(str(subdir))
