@@ -2,10 +2,10 @@ import gzip
 import io
 from pathlib import Path
 
-import utils
-
 from warcio.statusandheaders import StatusAndHeaders
 from warcio.warcwriter import WARCWriter
+
+import utils
 
 
 def _create_warc(path: Path, content_type: str = "text/plain") -> None:

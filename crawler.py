@@ -21,7 +21,6 @@ TARGET_EXTENSIONS = {
 OUTPUT_DIR = os.getenv("OUTPUT_DIR", "./output")
 MAX_WARCS = int(os.getenv("MAX_WARCS", "10"))
 SAMPLES_PER_EXT = int(os.getenv("SAMPLES_PER_EXT", "1000"))
-MAX_WORKERS = int(os.getenv("MAX_WORKERS", "4"))
 STATE_FILE = os.getenv("STATE_FILE", "crawler_state.json")
 
 os.makedirs(OUTPUT_DIR, exist_ok=True)
@@ -44,12 +43,6 @@ def main() -> None:
         type=int,
         default=SAMPLES_PER_EXT,
         help="Number of files to save per extension",
-    )
-    parser.add_argument(
-        "--workers",
-        type=int,
-        default=MAX_WORKERS,
-        help="Maximum number of concurrent workers",
     )
     parser.add_argument(
         "--warc-dir",
