@@ -77,8 +77,6 @@ def _iter_index_paths(entry: str) -> Iterator[str]:
 
         url = f"{prefix}/{entry.lstrip('/')}"
 
-        url = f"{prefix}/{entry.lstrip('/') }"
-
         for line in _open_gzip_stream(url):
             yield line.decode("utf-8").strip()
 
