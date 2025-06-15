@@ -18,9 +18,16 @@ pip install -r requirements.txt
 
 ## Running the fetcher
 
+
 The `fetcher.py` script reads a JSON configuration describing which records to
 extract.  A default example is provided as `config.json`.  A minimal
 configuration looks like:
+
+## Running the fetcher
+
+The new `fetcher.py` script reads a JSON configuration that lists the desired
+index files and filtering rules.  A minimal configuration looks like:
+
 
 ```json
 {
@@ -28,7 +35,11 @@ configuration looks like:
   "indices": {"paths": ["crawl-data/CC-MAIN-2023-06/cc-index.paths.gz"]},
   "recordSelector": {
     "must": {"status": [{"match": "200"}]},
+
     "should": {"mime-detected": [{"match": "video/mp4"}]}
+
+    "should": {"mime_detected": [{"match": "video/mp4"}]}
+
   }
 }
 ```
@@ -36,11 +47,24 @@ configuration looks like:
 Run the fetcher with:
 
 ```bash
+
 python fetcher.py config.json
+
+python fetcher.py path/to/config.json
+
 ```
 
 If `dryRun` is set to `false` the matching files are downloaded and stored in
 the directory specified by `outputDir`.
+
+
+
+### Local crawler
+
+The previous local crawler is still available as `crawler.py`. It scans local
+WARC files and saves matching records based on file extension. See
+`docs/USAGE.md` for details.
+
 
 ## Documentation
 
