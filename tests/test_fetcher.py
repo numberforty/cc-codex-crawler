@@ -124,3 +124,27 @@ def test_recordselector_must_not():
     assert selector.matches(record)
     record["mime"] = "video/avi"
     assert not selector.matches(record)
+
+
+def test_open_gzip_stream_relative(monkeypatch):
+    data = gzip.compress(b"entry\n")
+    calls = []
+
+    class FakeResp:
+        def __init__(self, content: bytes) -> None:
+            self.raw = io.BytesIO(content)
+
+        def raise_for_status(self) -> None:  # pragma: no cover - test helper
+            pass
+
+    def fake_get(url, stream=True, timeout=None):
+        calls.append(url)
+        return FakeResp(data)
+
+    monkeypatch.setattr(fetcher.requests, "get", fake_get)
+    monkeypatch.setattr(fetcher.os.path, "exists", lambda p: False)
+
+    result = list(fetcher._open_gzip_stream("foo/bar.gz"))
+
+    assert result == [b"entry\n"]
+    assert calls == [f"{fetcher.BASE_URL}/foo/bar.gz"]
