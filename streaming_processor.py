@@ -71,6 +71,9 @@ async def fetch_lines(
     while True:
         try:
             async with session.get(url) as resp:
+                if resp.status == 404:
+                    logger.error("URL not found: %s", url)
+                    return
                 if resp.status == 503:
                     raise aiohttp.ClientResponseError(
                         resp.request_info, resp.history, status=resp.status
