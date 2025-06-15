@@ -29,6 +29,7 @@ extract from the Common Crawl indices. A default example is provided as
   "indices": {"paths": ["crawl-data/CC-MAIN-2023-06/cc-index.paths.gz"]},
   "recordSelector": {
     "must": {"status": [{"match": "200"}]},
+    "must_not": {"mime": [{"match": "video/avi"}]},
     "should": {"mime-detected": [{"match": "video/mp4"}]}
   }
 }
