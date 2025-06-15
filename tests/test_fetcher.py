@@ -94,3 +94,19 @@ def test_iter_index_paths_url(monkeypatch):
 
     assert result == ["entry"]
     assert calls == [f"{fetcher.BASE_URL}/foo/bar.gz"]
+
+
+def test_iter_index_paths_http(monkeypatch):
+    calls = []
+
+    def fake_open(path):
+        calls.append(path)
+        yield b"entry\n"
+
+    monkeypatch.setattr(fetcher, "_open_gzip_stream", fake_open)
+    monkeypatch.setattr(fetcher.os.path, "exists", lambda p: False)
+
+    result = list(fetcher._iter_index_paths("path/to/index.gz "))
+
+    assert result == ["entry"]
+    assert calls == [f"{fetcher.BASE_URL}/path/to/index.gz"]

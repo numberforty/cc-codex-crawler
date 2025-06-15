@@ -70,12 +70,13 @@ def _open_gzip_stream(path_or_url: str) -> Iterator[bytes]:
 
 def _iter_index_paths(entry: str) -> Iterator[str]:
     prefix = BASE_URL
-    if os.path.exists(entry):
-        for line in _open_gzip_stream(entry):
+    cleaned = entry.strip()
+    if os.path.exists(cleaned):
+        for line in _open_gzip_stream(cleaned):
             yield line.decode("utf-8").strip()
     else:
 
-        url = f"{prefix}/{entry.lstrip('/')}"
+        url = f"{prefix}/{cleaned.lstrip('/')}"
 
         for line in _open_gzip_stream(url):
             yield line.decode("utf-8").strip()
