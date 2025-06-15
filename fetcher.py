@@ -15,7 +15,7 @@ import json
 import os
 import time
 from dataclasses import dataclass
-from typing import Dict, Iterable, Iterator, List, Optional
+from typing import Dict, Iterator, List, Optional
 
 import requests
 from warcio.archiveiterator import ArchiveIterator
@@ -32,7 +32,9 @@ class RecordSelector:
 
     @classmethod
     def from_dict(cls, data: Dict) -> "RecordSelector":
-        def _load(section: Optional[Dict[str, List[Dict[str, str]]]]) -> Dict[str, List[str]]:
+        def _load(
+            section: Optional[Dict[str, List[Dict[str, str]]]]
+        ) -> Dict[str, List[str]]:
             out: Dict[str, List[str]] = {}
             if not section:
                 return out

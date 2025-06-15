@@ -7,10 +7,10 @@ from pathlib import Path
 
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 
-from warcio.statusandheaders import StatusAndHeaders
-from warcio.warcwriter import WARCWriter
+from warcio.statusandheaders import StatusAndHeaders  # noqa: E402
+from warcio.warcwriter import WARCWriter  # noqa: E402
 
-import fetcher
+import fetcher  # noqa: E402
 
 
 def _create_warc(path: Path, content_type: str, url: str) -> int:
