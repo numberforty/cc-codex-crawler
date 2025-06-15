@@ -68,6 +68,8 @@ def _open_gzip_stream(path_or_url: str) -> Iterator[bytes]:
     if os.path.exists(path_or_url):
         fh = open(path_or_url, "rb")
     else:
+        if "://" not in path_or_url:
+            path_or_url = f"{BASE_URL}/{path_or_url.lstrip('/')}"
         resp = requests.get(path_or_url, stream=True, timeout=REQUEST_TIMEOUT)
         resp.raise_for_status()
         fh = resp.raw
