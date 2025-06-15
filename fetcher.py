@@ -28,6 +28,7 @@ BASE_URL = "https://data.commoncrawl.org"
 @dataclass
 class RecordSelector:
     must: Dict[str, List[str]]
+    must_not: Dict[str, List[str]]
     should: Dict[str, List[str]]
 
     @classmethod
@@ -42,11 +43,18 @@ class RecordSelector:
                 out[field] = [c.get("match") for c in conditions if "match" in c]
             return out
 
-        return cls(must=_load(data.get("must")), should=_load(data.get("should")))
+        return cls(
+            must=_load(data.get("must")),
+            must_not=_load(data.get("must_not")),
+            should=_load(data.get("should")),
+        )
 
     def matches(self, record: Dict[str, str]) -> bool:
         for field, values in self.must.items():
             if record.get(field) not in values:
+                return False
+        for field, values in self.must_not.items():
+            if record.get(field) in values:
                 return False
         if not self.should:
             return True

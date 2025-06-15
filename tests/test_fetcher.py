@@ -110,3 +110,17 @@ def test_iter_index_paths_http(monkeypatch):
 
     assert result == ["entry"]
     assert calls == [f"{fetcher.BASE_URL}/path/to/index.gz"]
+
+
+def test_recordselector_must_not():
+    selector = fetcher.RecordSelector.from_dict(
+        {
+            "must": {"status": [{"match": "200"}]},
+            "must_not": {"mime": [{"match": "video/avi"}]},
+            "should": {"mime-detected": [{"match": "video/mp4"}]},
+        }
+    )
+    record = {"status": "200", "mime": "video/mp4", "mime-detected": "video/mp4"}
+    assert selector.matches(record)
+    record["mime"] = "video/avi"
+    assert not selector.matches(record)
