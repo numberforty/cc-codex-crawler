@@ -1,6 +1,7 @@
 # Example configuration for streaming_processor.py
 urls:
-  - "https://data.commoncrawl.org/crawl-data/CC-MAIN-2024-10/indexes/cdx-00000.gz"
+  # Update to a known crawl so the example works out of the box
+  - "https://data.commoncrawl.org/crawl-data/CC-MAIN-2023-06/indexes/cdx-00000.gz"
 max_concurrent_tasks: 10
 max_retries: 4
 timeout: 10
