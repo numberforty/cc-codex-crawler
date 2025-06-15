@@ -7,12 +7,12 @@ run the simplified Common Crawl fetcher.
 
 Create a JSON configuration file describing which records to extract from the
 Common Crawl indices. A minimal example that lists MP4 files without actually
-downloading them is provided at `docs/minimal-config.json`.
+downloading them is provided at `config.json` in the repository root.
 
 Run the fetcher by passing the configuration file:
 
 ```bash
-python fetcher.py docs/minimal-config.json
+python fetcher.py config.json
 ```
 
 Set `"dryRun": false` in the configuration to download matching files. The
