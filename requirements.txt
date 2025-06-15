@@ -3,3 +3,7 @@ requests==2.32.4
 tqdm==4.67.1
 python-dotenv==1.1.0
 colorama==0.4.6
+
+aiohttp==3.12.13
+orjson==3.10.18
+PyYAML==6.0.2

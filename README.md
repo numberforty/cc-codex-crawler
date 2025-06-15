@@ -47,6 +47,20 @@ If `dryRun` is set to `false` the matching files are downloaded and stored in
 the directory specified by `outputDir`.
 
 
+## Streaming Processor
+
+`streaming_processor.py` asynchronously streams gzipped index files. Create a
+YAML configuration similar to `config_template.yaml` and run:
+
+```bash
+python streaming_processor.py config_template.yaml
+```
+
+The processor logs progress and retries with exponential backoff on HTTP 503
+responses.
+
+
+
 
 ### Local crawler
 

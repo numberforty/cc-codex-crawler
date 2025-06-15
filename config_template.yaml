@@ -1,0 +1,8 @@
+# Example configuration for streaming_processor.py
+urls:
+  - "https://data.commoncrawl.org/crawl-data/CC-MAIN-2024-10/indexes/cdx-00000.gz"
+max_concurrent_tasks: 10
+max_retries: 4
+timeout: 10
+record_limit: 1000
+
