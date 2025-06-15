@@ -6,6 +6,6 @@
   },
   "recordSelector": {
     "must": {"status": [{"match": "200"}]},
-    "should": {"mime_detected": [{"match": "video/mp4"}]}
+    "should": {"mime-detected": [{"match": "video/mp4"}]}
   }
 }

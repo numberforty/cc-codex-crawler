@@ -28,7 +28,7 @@ configuration looks like:
   "indices": {"paths": ["crawl-data/CC-MAIN-2023-06/cc-index.paths.gz"]},
   "recordSelector": {
     "must": {"status": [{"match": "200"}]},
-    "should": {"mime_detected": [{"match": "video/mp4"}]}
+    "should": {"mime-detected": [{"match": "video/mp4"}]}
   }
 }
 ```

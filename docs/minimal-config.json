@@ -8,7 +8,7 @@
       "status": [{"match": "200"}]
     },
     "should": {
-      "mime_detected": [{"match": "video/mp4"}]
+      "mime-detected": [{"match": "video/mp4"}]
     }
   }
 }
