@@ -5,6 +5,6 @@ WORKDIR /app
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
-COPY crawler.py codex_crawler.py ./
+COPY fetcher.py ./
 
-ENTRYPOINT ["python", "crawler.py"]
+ENTRYPOINT ["python", "fetcher.py"]
