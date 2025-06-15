@@ -19,7 +19,9 @@ from http_utils import BACKOFF_DELAYS
 logger = logging.getLogger(__name__)
 
 
-async def _iter_gzip_lines_from_response(resp: aiohttp.ClientResponse) -> AsyncIterator[str]:
+async def _iter_gzip_lines_from_response(
+    resp: aiohttp.ClientResponse,
+) -> AsyncIterator[str]:
     """Yield decoded lines from a gzip-compressed HTTP response."""
     decompressor = zlib.decompressobj(16 + zlib.MAX_WBITS)
     buf = b""
@@ -55,7 +57,9 @@ async def _iter_gzip_lines_from_file(path: str) -> AsyncIterator[str]:
             yield buf.decode("utf-8")
 
 
-async def fetch_lines(session: ClientSession, url: str, config: Config) -> AsyncIterator[str]:
+async def fetch_lines(
+    session: ClientSession, url: str, config: Config
+) -> AsyncIterator[str]:
     """Fetch ``url`` and yield decompressed lines with retry and backoff."""
     if os.path.exists(url):
         async for line in _iter_gzip_lines_from_file(url):
@@ -92,7 +96,11 @@ async def producer(queue: asyncio.Queue[str], urls: Iterable[str]) -> None:
     await queue.put(None)  # sentinel
 
 
-async def consumer(queue: asyncio.Queue[Optional[str]], session: ClientSession, config: Config) -> None:
+async def consumer(
+    queue: asyncio.Queue[Optional[str]],
+    session: ClientSession,
+    config: Config,
+) -> None:
     while True:
         url = await queue.get()
         if url is None:
@@ -119,10 +127,16 @@ async def consumer(queue: asyncio.Queue[Optional[str]], session: ClientSession, 
 
 
 async def run(config: Config) -> None:
-    logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(message)s")
+    logging.basicConfig(
+        level=logging.INFO,
+        format="%(asctime)s %(levelname)s %(message)s",
+    )
     queue: asyncio.Queue[Optional[str]] = asyncio.Queue()
     async with ClientSession(timeout=ClientTimeout(total=config.timeout)) as session:
-        cons = [asyncio.create_task(consumer(queue, session, config)) for _ in range(config.max_concurrent_tasks)]
+        cons = [
+            asyncio.create_task(consumer(queue, session, config))
+            for _ in range(config.max_concurrent_tasks)
+        ]
         await producer(queue, config.urls)
         await queue.join()
         for _ in cons:
