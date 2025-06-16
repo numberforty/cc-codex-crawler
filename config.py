@@ -14,6 +14,7 @@ class Config:
     max_retries: int = 4
     timeout: int = 10
     record_limit: int = 1000
+    extension_filter: str | None = None
 
 
 def load_config(path: str) -> Config:
@@ -25,4 +26,5 @@ def load_config(path: str) -> Config:
         max_retries=int(data.get("max_retries", 4)),
         timeout=int(data.get("timeout", 10)),
         record_limit=int(data.get("record_limit", 1000)),
+        extension_filter=data.get("extension_filter"),
     )

@@ -14,6 +14,7 @@ import zlib
 from config import Config, load_config
 from json_utils import parse_json_line
 from http_utils import BACKOFF_DELAYS
+from utils import extension_from_url
 
 
 logger = logging.getLogger(__name__)
@@ -116,6 +117,10 @@ async def consumer(
                 record = parse_json_line(line)
                 if not record:
                     continue
+                if config.extension_filter:
+                    ext = extension_from_url(record.get("url", ""))
+                    if ext.lower() != config.extension_filter.lower():
+                        continue
                 logger.info(
                     "URL: %s TS:%s", record.get("url"), record.get("timestamp")
                 )
