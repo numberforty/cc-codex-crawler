@@ -59,6 +59,26 @@ python streaming_processor.py config_template.yaml
 The processor logs progress and retries with exponential backoff on HTTP 503
 responses.
 
+### Sampling MP3 URLs
+
+Set `record_limit` to the number of results you want and use
+`extension_filter` to restrict matches by file extension:
+
+```yaml
+urls:
+  - "https://data.commoncrawl.org/cc-index/collections/CC-MAIN-2023-06/indexes/cdx-00001.gz"
+record_limit: 100
+extension_filter: ".mp3"
+```
+
+Run the processor with your configuration:
+
+```bash
+python streaming_processor.py config.yaml
+```
+
+Each matching record's URL and timestamp will be printed to the console.
+
 
 
 
